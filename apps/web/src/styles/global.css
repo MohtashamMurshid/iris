@@ -113,8 +113,38 @@ nav a:hover { color: var(--chalk); }
   font-size: 11px;
   letter-spacing: .1em;
 }
-.header-cta {
+.header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
   justify-self: end;
+}
+
+.header-github {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--graphite);
+  color: var(--chalk);
+  place-items: center;
+  transition: transform 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+.header-github svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
+.header-github:hover {
+  transform: translateY(-2px);
+  border-color: rgb(244 242 237 / 30%);
+  color: white;
+}
+
+.header-cta {
   min-height: 34px;
   padding: 0 14px;
   font-size: 10px;
@@ -994,6 +1024,9 @@ footer .wordmark { color: var(--chalk); }
   .site-header { height: 60px; padding: 0 16px; }
   .wordmark { font-size: 16px; }
   .iris-mark { width: 20px; height: 20px; }
+  .header-actions { gap: 8px; }
+  .header-github { width: 32px; height: 32px; }
+  .header-github svg { width: 15px; height: 15px; }
   .header-cta { min-height: 32px; padding: 0 12px; font-size: 10px; }
 
   .hero {
