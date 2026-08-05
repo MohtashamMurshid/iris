@@ -1,0 +1,46 @@
+.capability-strip {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.2fr) minmax(0, 2fr);
+  gap: 32px;
+  align-items: center;
+  min-height: 88px;
+  padding: 22px 36px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.capability-strip p {
+  max-width: 340px;
+  margin: 0;
+  color: var(--fog);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.capability-strip ul {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.capability-strip li {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  color: var(--chalk);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+
+.capability-strip li svg {
+  width: 14px;
+  height: 14px;
+  color: var(--fog);
+  flex-shrink: 0;
+}

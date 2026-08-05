@@ -1,0 +1,28 @@
+---
+import Wordmark from '../brand/Wordmark.astro';
+import GitHubIcon from '../icons/GitHubIcon.astro';
+import { githubUrl, navLinks } from '../../data/content';
+---
+
+<header class="site-header">
+  <Wordmark />
+
+  <nav aria-label="Primary navigation">
+    {navLinks.map((link) => <a href={link.href}>{link.label}</a>)}
+  </nav>
+
+  <div class="header-actions">
+    <a
+      class="header-github"
+      href={githubUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Iris on GitHub"
+    >
+      <GitHubIcon />
+    </a>
+    <a class="button button-dark header-cta" href="#early-access">
+      Early access <span aria-hidden="true">↗</span>
+    </a>
+  </div>
+</header>

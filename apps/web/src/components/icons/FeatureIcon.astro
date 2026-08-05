@@ -1,0 +1,102 @@
+---
+import type { CapabilityIcon } from '../../data/content';
+
+interface Props {
+  name: CapabilityIcon;
+}
+
+const { name } = Astro.props;
+---
+
+<svg class="feature-icon" viewBox="0 0 48 48" aria-hidden="true">
+  {
+    name === 'control' && (
+      <>
+        <circle
+          class="icon-stroke"
+          cx="24"
+          cy="24"
+          r="16"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"></circle>
+        <circle
+          class="icon-stroke"
+          cx="24"
+          cy="24"
+          r="9"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-dasharray="5 3"></circle>
+        <circle cx="24" cy="24" r="2.5" fill="var(--signal-red)"></circle>
+        <path
+          class="icon-stroke"
+          d="M24 6v4M24 38v4M6 24h4M38 24h4"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"></path>
+      </>
+    )
+  }
+  {
+    name === 'look' && (
+      <>
+        <ellipse
+          class="icon-stroke"
+          cx="24"
+          cy="24"
+          rx="18"
+          ry="11"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"></ellipse>
+        <circle
+          class="icon-stroke"
+          cx="24"
+          cy="24"
+          r="7"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-dasharray="6 3"></circle>
+        <circle cx="24" cy="24" r="2.5" fill="var(--signal-red)"></circle>
+      </>
+    )
+  }
+  {
+    name === 'files' && (
+      <>
+        <rect
+          class="icon-stroke"
+          x="12"
+          y="10"
+          width="20"
+          height="26"
+          rx="2"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"></rect>
+        <rect
+          class="icon-stroke"
+          x="16"
+          y="14"
+          width="20"
+          height="26"
+          rx="2"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"></rect>
+        <path
+          class="icon-stroke"
+          d="M20 24h12M20 29h8"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"></path>
+        <circle cx="34" cy="16" r="2" fill="var(--signal-red)"></circle>
+      </>
+    )
+  }
+</svg>

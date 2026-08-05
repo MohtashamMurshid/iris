@@ -1,0 +1,71 @@
+/* Motion initial states — Motion drives the entrance */
+.hero-motion,
+.reveal {
+  opacity: 0;
+}
+
+.iris-mark .mark-ring,
+.iris-mark .mark-core {
+  transform-origin: center;
+  transform-box: fill-box;
+}
+
+.iris-mark .mark-ring {
+  animation: orbit-spin 22s linear infinite;
+}
+
+.iris-mark .mark-core {
+  animation: core-pulse 3s ease-in-out infinite;
+}
+
+@keyframes orbit-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes core-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.12); opacity: .78; }
+}
+
+.chip-look { transform: rotate(4deg); }
+.chip-raw { transform: rotate(-3deg); }
+
+.hero-atmosphere .orbit {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+
+  .hero-motion,
+  .reveal,
+  .hero-atmosphere .orbit {
+    opacity: 1;
+    transform: none;
+  }
+
+  .iris-mark .mark-ring,
+  .iris-mark .mark-core,
+  .diagram-ring,
+  .diagram-core,
+  .camera-flash,
+  .focus-reticle,
+  .frame-count strong,
+  .viewfinder.is-zooming::after,
+  .last-shot.has-photo {
+    animation: none !important;
+  }
+
+  .viewfinder-photo,
+  .camera-grain,
+  .grid-lines,
+  .focus-reticle,
+  .lens-rail button,
+  .tool-row > button,
+  .look-control > i,
+  .shutter i,
+  .camera-flip,
+  .last-shot {
+    transition: none;
+  }
+}

@@ -1,0 +1,18 @@
+---
+import HighlightMark from '../icons/HighlightMark.astro';
+import { highlights } from '../../data/content';
+---
+
+<div class="capability-strip reveal" aria-label="Iris highlights">
+  <p>Made for photographers who want more from the camera they always carry.</p>
+  <ul>
+    {
+      highlights.map((item) => (
+        <li>
+          <HighlightMark />
+          {item}
+        </li>
+      ))
+    }
+  </ul>
+</div>

@@ -1,0 +1,5 @@
+.site-frame {
+  width: min(calc(100% - 48px), 1440px);
+  margin: 0 auto;
+  border-inline: 1px solid var(--line);
+}
