@@ -1,57 +1,66 @@
 # Iris mobile
 
-This is the Expo mobile workspace for Iris.
+Expo workspace for the Iris iPhone camera app (`@iris/mobile`).
+
+## Requirements
+
+- Repository root install (`npm install` from `/`)
+- Expo SDK 57
+- macOS + Xcode for iOS
+- A physical iPhone for camera development and QA
+
+Full camera capture needs a **custom development build**. Expo Go is fine for UI work, but not for the complete hardware control surface.
+
+Use the versioned Expo docs: [https://docs.expo.dev/versions/v57.0.0/](https://docs.expo.dev/versions/v57.0.0/)
 
 ## Get started
 
-1. Install dependencies from the repository root
-
-   ```bash
-   cd ../..
-   npm install
-   ```
-
-2. Start the app from the repository root
-
-   ```bash
-   npm run mobile
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing files inside `src/app`. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+From the repository root:
 
 ```bash
-npm run reset-project
+npm install
+npm run mobile
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Then open the app in:
 
-### Other setup steps
+- a [development build](https://docs.expo.dev/develop/development-builds/introduction/)
+- the [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/) (UI-only without a device camera)
+- a physical iPhone on the same network as Metro
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+Edit screens and routes under `src/app`. This project uses [Expo Router](https://docs.expo.dev/router/introduction/).
 
-## Learn more
+## Useful paths
 
-To learn more about developing your project with Expo, look at the following resources:
+```text
+src/app/                 File-based routes
+src/components/          Shared UI
+src/constants/theme.ts   Iris colors, fonts, spacing
+assets/images/           Icons, splash, aperture mark
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Scripts
 
-## Join the community
+Run from the repository root when possible:
 
-Join our community of developers creating universal apps.
+```bash
+npm run mobile
+npm run mobile:ios
+npm run mobile:android
+npm run mobile:web
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Inside this workspace:
+
+```bash
+npm run lint
+npm run typecheck
+```
+
+## Product context
+
+Iris aims to feel like an optical instrument: calm, precise, and out of the way of the photograph. Read the [product requirements](../../docs/PRD.md) before changing capture UX, Looks, or control behavior.
+
+## Contributing
+
+See [CONTRIBUTING.md](../../CONTRIBUTING.md) at the repository root.

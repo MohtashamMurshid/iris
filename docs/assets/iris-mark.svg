@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Iris mark">
+  <circle
+    cx="16"
+    cy="16"
+    r="11"
+    fill="none"
+    stroke="#101012"
+    stroke-width="7.5"
+    stroke-dasharray="9 2.52"
+    transform="rotate(-80 16 16)"
+  />
+</svg>
