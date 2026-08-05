@@ -2,11 +2,13 @@
 
 ## Product requirements document
 
-**Status:** Draft  
+**Status:** Draft — in development, no released app  
 **Version:** 1.2<br>
 **Target:** iPhone  
 **Project:** Iris  
 **Last updated:** August 5, 2026
+
+> Iris is under active development. There is no App Store listing, TestFlight build, or public consumer download yet. This PRD describes the product being built.
 
 ## 1. Product summary
 

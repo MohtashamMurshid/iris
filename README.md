@@ -29,6 +29,8 @@
   <img alt="Status: In development" src="https://img.shields.io/badge/status-in%20development-98989F?style=flat-square" />
 </p>
 
+> **Iris is still in development.** There is no released app yet—no App Store listing, TestFlight, or public download. This repository holds the product in progress; early access will be announced when a build is ready.
+
 ---
 
 ## Why Iris

@@ -2,6 +2,8 @@
 
 Expo workspace for the Iris iPhone camera app (`@iris/mobile`).
 
+> **In development.** This is not a released consumer app. There is no App Store or TestFlight build yet—only the open-source Expo workspace used while Iris is being built.
+
 ## Requirements
 
 - Repository root install (`npm install` from `/`)

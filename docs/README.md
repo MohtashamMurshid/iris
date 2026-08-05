@@ -2,6 +2,8 @@
 
 Product, contributor, and workspace docs for Iris.
 
+> **Status:** Iris is still in development. There is **no released app** yet—nothing on the App Store, TestFlight, or public download. What exists today is the open-source repo, product docs, and a marketing site. Early access will be announced when a build is ready.
+
 ## Start here
 
 | Document | Audience | Description |
@@ -30,7 +32,7 @@ Iris is an iPhone camera for photographers who want:
 - Direct manual control
 - Original live Looks in the viewfinder
 
-v1 scope is **still photography on iPhone**. See the [PRD](PRD.md) for goals, non-goals, IA, Looks, formats, and acceptance criteria.
+v1 scope is **still photography on iPhone**. The product is actively being built; there is no installable consumer app yet. See the [PRD](PRD.md) for goals, non-goals, IA, Looks, formats, and acceptance criteria.
 
 ## Suggested reading order for contributors
 

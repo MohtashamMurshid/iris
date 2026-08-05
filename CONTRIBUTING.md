@@ -8,7 +8,7 @@ Thanks for helping build Iris. This guide keeps contributions focused, reviewabl
 2. Skim the [Code of Conduct](CODE_OF_CONDUCT.md).
 3. For non-trivial work, open an issue first so we can agree on scope.
 
-Iris v1 is **iPhone still photography**. Please do not submit Android ports, video capture, social features, or Leica/Halide-style trademarked look names unless the PRD explicitly expands scope.
+Iris is **still in development**—there is no released app yet. v1 is **iPhone still photography**. Please do not submit Android ports, video capture, social features, or Leica/Halide-style trademarked look names unless the PRD explicitly expands scope.
 
 ## Development setup
 
