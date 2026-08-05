@@ -1,171 +1,226 @@
 ---
 import Layout from '../layouts/Layout.astro';
 
-const controls = [
-  { value: '1/250', label: 'Shutter' },
-  { value: '200', label: 'ISO' },
-  { value: '5200K', label: 'White balance' },
+const capabilities = [
+  ['01', 'Direct control', 'Shutter, ISO, focus, white balance, and exposure—without leaving the frame.'],
+  ['02', 'Live Iris Looks', 'See the final character of your photograph before you press the shutter.'],
+  ['03', 'Files with a future', 'Keep a finished HEIC for now or a flexible RAW file for what comes next.'],
 ];
 
-const features = [
+const looks = [
   {
-    number: '01',
-    title: 'Manual, without the maze',
-    copy: 'Control shutter speed, ISO, focus, white balance, and exposure from one calm, tactile interface.',
+    name: 'Natural',
+    description: 'Quiet color. Honest light.',
+    className: 'natural',
+    image: '/images/look-natural.jpg',
+    alt: 'A cyclist passing a concrete wall beneath soft tree shadows',
   },
   {
-    number: '02',
-    title: 'See the look before the shot',
-    copy: 'Original Iris Looks render live, so the photograph you frame is the photograph you keep.',
+    name: 'Daylight',
+    description: 'Warm highlights. Clean blues.',
+    className: 'daylight',
+    image: '/images/look-daylight.jpg',
+    alt: 'A person in red ascending a sunlit coastal stairway',
   },
   {
-    number: '03',
-    title: 'Your file, your choice',
-    copy: 'Capture a finished HEIC for the moment or keep the full flexibility of RAW when the scene deserves it.',
+    name: 'Noir',
+    description: 'Soft silver. Deep blacks.',
+    className: 'noir',
+    image: '/images/look-noir.jpg',
+    alt: 'A solitary figure standing beneath a rain-darkened railway overpass',
   },
 ];
 ---
 
 <Layout
-  title="Iris — Photography, in your hands"
-  description="Iris is a manual camera for iPhone with direct photographic controls and original live looks."
+  title="Iris — A camera with a point of view"
+  description="Iris is a private, focused camera for iPhone with direct manual controls and original live looks."
 >
-  <header class="site-header">
-    <a class="wordmark" href="/" aria-label="Iris home">
-      <span class="aperture-mark" aria-hidden="true"></span>
-      IRIS
-    </a>
-    <nav aria-label="Primary navigation">
-      <a href="#features">Features</a>
-      <a href="#principles">Why Iris</a>
-    </nav>
-    <a class="header-cta" href="#early-access">Early access</a>
-  </header>
+  <div class="site-frame">
+    <header class="site-header">
+      <a class="wordmark" href="#top" aria-label="Iris home">
+        <span class="iris-mark" aria-hidden="true"></span>
+        <span>IRIS</span>
+      </a>
 
-  <main>
-    <section class="hero">
-      <div class="hero-copy">
-        <p class="eyebrow">A camera for iPhone</p>
-        <h1>Photography,<br /><em>in your hands.</em></h1>
-        <p class="hero-intro">
-          Direct control when you want it. A finished photograph when you
-          don’t. Iris turns your iPhone into a camera that rewards intention.
-        </p>
-        <div class="hero-actions">
-          <a class="button button-primary" href="#features">Explore Iris</a>
-          <span class="availability">Coming first to iPhone</span>
+      <nav aria-label="Primary navigation">
+        <a href="#features">Features</a>
+        <a href="#looks">Iris Looks</a>
+        <a href="#principles">Why Iris</a>
+      </nav>
+
+      <a class="button button-dark header-cta" href="#early-access">
+        Get early access <span aria-hidden="true">↗</span>
+      </a>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow"><span></span> Camera, reconsidered</p>
+          <h1 id="hero-title">
+            The frame comes first.<br />
+            <span>You control the rest.</span>
+          </h1>
+          <p class="hero-intro">
+            A focused iPhone camera for fast automatic capture, precise manual control,
+            and original looks you can see before the shot.
+          </p>
+          <div class="hero-actions">
+            <a class="button button-light" href="#early-access">
+              Get early access <span aria-hidden="true">↗</span>
+            </a>
+            <a class="button button-ghost" href="#features">Explore Iris</a>
+          </div>
         </div>
-      </div>
 
-      <div class="camera-stage" aria-label="Preview of the Iris camera interface">
-        <div class="phone">
-          <div class="phone-screen">
-            <div class="viewfinder">
-              <div class="viewfinder-sky"></div>
-              <div class="viewfinder-horizon"></div>
-              <div class="viewfinder-subject"></div>
-              <span class="focus-box" aria-hidden="true"></span>
-              <div class="camera-topbar">
-                <span>RAW</span>
-                <span>AUTO</span>
-                <span>•••</span>
-              </div>
-              <div class="look-label">
-                <span>IRIS LOOK</span>
-                <strong>DAYLIGHT</strong>
-              </div>
-            </div>
-            <div class="camera-controls">
-              <div class="control-values">
-                {controls.map((control) => (
-                  <div>
-                    <span>{control.label}</span>
-                    <strong>{control.value}</strong>
+        <div class="hero-visual" aria-label="A preview of the Iris camera interface">
+          <div class="orbit orbit-one"></div>
+          <div class="orbit orbit-two"></div>
+          <div class="orbit orbit-three"></div>
+          <div class="red-glow"></div>
+
+          <div class="floating-chip chip-look">
+            <span class="chip-dot"></span>
+            <span><small>IRIS LOOK</small> NATURAL</span>
+          </div>
+          <div class="floating-chip chip-raw">
+            <span><small>FORMAT</small> RAW + HEIC</span>
+          </div>
+
+          <div class="phone">
+            <div class="phone-bezel">
+              <div class="phone-screen">
+                <div class="phone-status">
+                  <div class="mini-brand"><span class="mini-mark"></span> IRIS</div>
+                  <span class="camera-state"><i></i> BACK</span>
+                  <span class="frame-count"><strong>36</strong><small>FRAMES</small></span>
+                </div>
+
+                <div class="viewfinder">
+                  <img
+                    class="viewfinder-photo"
+                    src="/images/iris-hero.jpg"
+                    alt=""
+                    width="1024"
+                    height="1536"
+                  />
+                  <div class="grid-lines" aria-hidden="true"></div>
+                  <div class="preview-label"><i></i> STYLE PREVIEW</div>
+                  <div class="exposure-pill"><span>1/125</span><i></i><span>ISO 64</span></div>
+                  <div class="focus-reticle"><i></i></div>
+                  <div class="lens-rail">
+                    <span>24</span><span>28</span><strong>35</strong><span>50</span><small>MM</small>
                   </div>
-                ))}
-              </div>
-              <div class="focal-lengths" aria-hidden="true">
-                <span>24</span>
-                <strong>35</strong>
-                <span>50</span>
-              </div>
-              <div class="shutter-row">
-                <span class="thumbnail"></span>
-                <span class="shutter"></span>
-                <span class="switch-camera">↻</span>
+                </div>
+
+                <div class="control-deck">
+                  <div class="mode-switch">
+                    <span class="active">PHOTO<i></i></span><span>MANUAL</span>
+                  </div>
+                  <div class="tool-row">
+                    <span><i>◫</i><strong>HEIC</strong><small>FORMAT</small></span>
+                    <span><i>ϟ</i><strong>OFF</strong><small>FLASH</small></span>
+                    <span><i>◎</i><strong>AUTO</strong><small>FOCUS</small></span>
+                    <span><i>▦</i><strong>3 × 3</strong><small>GRID</small></span>
+                  </div>
+                  <div class="capture-row">
+                    <span class="look-control"><i></i><b><small>IRIS LOOK</small>NATURAL</b></span>
+                    <span class="shutter"><i></i></span>
+                    <span class="camera-flip">↻</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
+
+          <p class="visual-note"><span></span> Designed around the photograph—not the interface.</p>
         </div>
-        <p class="stage-note">Designed around the photograph—not the interface.</p>
-      </div>
-    </section>
+      </section>
 
-    <section class="statement" id="principles">
-      <p class="eyebrow">The Iris approach</p>
-      <blockquote>
-        “A powerful camera should make you more present, not more distracted.”
-      </blockquote>
-      <p>
-        Iris keeps automatic capture immediate and reveals deeper controls only
-        when you reach for them.
-      </p>
-    </section>
-
-    <section class="features" id="features">
-      <div class="section-heading">
-        <p class="eyebrow">Made for the frame</p>
-        <h2>Everything essential.<br />Nothing between you and the moment.</h2>
+      <div class="capability-strip" aria-label="Iris highlights">
+        <p>Made for photographers who want more from the camera they always carry.</p>
+        <span>Manual control</span>
+        <span>Live looks</span>
+        <span>HEIC + RAW</span>
+        <span>Private by default</span>
       </div>
-      <div class="feature-list">
-        {features.map((feature) => (
-          <article class="feature">
-            <span>{feature.number}</span>
-            <h3>{feature.title}</h3>
-            <p>{feature.copy}</p>
-          </article>
-        ))}
-      </div>
-    </section>
 
-    <section class="looks">
-      <div class="looks-copy">
-        <p class="eyebrow">Original Iris Looks</p>
-        <h2>Color with<br /><em>a point of view.</em></h2>
-        <p>
-          Five considered renderings—from quiet and natural to crisp
-          monochrome—shown live in the viewfinder and applied with care to the
-          final image.
+      <section class="principles" id="principles">
+        <p class="section-label">01 / The Iris approach</p>
+        <div>
+          <p class="statement-kicker">A phone can be a real camera.</p>
+          <h2>More intention.<br /><span>Less interface.</span></h2>
+        </div>
+        <p class="principle-copy">
+          Iris stays fast when the moment is brief, then reveals direct photographic
+          controls when you reach for them. No feed. No account. Nothing between you
+          and the frame.
         </p>
-      </div>
-      <div class="look-swatches" aria-label="Iris Look examples">
-        <div class="swatch swatch-natural"><span>Natural</span></div>
-        <div class="swatch swatch-daylight"><span>Daylight</span></div>
-        <div class="swatch swatch-noir"><span>Noir</span></div>
-      </div>
-    </section>
+      </section>
 
-    <section class="early-access" id="early-access">
-      <div>
-        <p class="eyebrow">In development</p>
-        <h2>The first frame<br />is coming.</h2>
-      </div>
-      <div class="early-copy">
-        <p>
-          Iris is being built for photographers who want their phone to feel
-          more like a camera. Early access details will be announced here.
-        </p>
-        <span class="status-pill"><i></i> iPhone beta planned</span>
-      </div>
-    </section>
-  </main>
+      <section class="features" id="features">
+        <div class="section-head">
+          <p class="section-label">02 / Built for the frame</p>
+          <h2>Everything essential.<br /><span>Nothing extra.</span></h2>
+        </div>
+        <div class="feature-grid">
+          {capabilities.map(([number, title, copy]) => (
+            <article>
+              <span class="feature-number">{number}</span>
+              <div class="feature-icon" aria-hidden="true"><i></i></div>
+              <h3>{title}</h3>
+              <p>{copy}</p>
+            </article>
+          ))}
+        </div>
+      </section>
 
-  <footer>
-    <a class="wordmark" href="/" aria-label="Iris home">
-      <span class="aperture-mark" aria-hidden="true"></span>
-      IRIS
-    </a>
-    <p>Photography, in your hands.</p>
-    <p>© {new Date().getFullYear()} Iris</p>
-  </footer>
+      <section class="looks" id="looks">
+        <div class="looks-copy">
+          <p class="section-label">03 / Original Iris Looks</p>
+          <h2>Color with<br /><span>a point of view.</span></h2>
+          <p>
+            A small set of considered renderings, shown live in the viewfinder and
+            applied with care to the final image.
+          </p>
+        </div>
+        <div class="look-cards">
+          {looks.map((look, index) => (
+            <article class={`look-card look-${look.className}`}>
+              <div class="look-art">
+                <img src={look.image} alt={look.alt} width="960" height="1440" loading="lazy" />
+              </div>
+              <div class="look-meta">
+                <span>0{index + 1}</span>
+                <div><h3>{look.name}</h3><p>{look.description}</p></div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section class="early-access" id="early-access">
+        <p class="section-label">In development / iPhone first</p>
+        <h2>Be there for<br /><span>the first frame.</span></h2>
+        <div class="early-copy">
+          <p>
+            Iris is being built for photographers who want their phone to feel more
+            like a camera. Early access details will be announced here.
+          </p>
+          <a class="button button-light" href="mailto:hello@iris.camera?subject=Iris%20early%20access">
+            Join early access <span aria-hidden="true">↗</span>
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <a class="wordmark" href="#top" aria-label="Iris home">
+        <span class="iris-mark" aria-hidden="true"></span><span>IRIS</span>
+      </a>
+      <p>Photography, in your hands.</p>
+      <p>© {new Date().getFullYear()} Iris</p>
+    </footer>
+  </div>
 </Layout>
