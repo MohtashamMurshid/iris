@@ -2,10 +2,25 @@
 import Layout from '../layouts/Layout.astro';
 
 const capabilities = [
-  ['01', 'Direct control', 'Shutter, ISO, focus, white balance, and exposure—without leaving the frame.'],
-  ['02', 'Live Iris Looks', 'See the final character of your photograph before you press the shutter.'],
-  ['03', 'Files with a future', 'Keep a finished HEIC for now or a flexible RAW file for what comes next.'],
-];
+  {
+    number: '01',
+    title: 'Direct control',
+    copy: 'Shutter, ISO, focus, white balance, and exposure—without leaving the frame.',
+    icon: 'control',
+  },
+  {
+    number: '02',
+    title: 'Live Iris Looks',
+    copy: 'See the final character of your photograph before you press the shutter.',
+    icon: 'look',
+  },
+  {
+    number: '03',
+    title: 'Files with a future',
+    copy: 'Keep a finished HEIC for now or a flexible RAW file for what comes next.',
+    icon: 'files',
+  },
+] as const;
 
 const looks = [
   {
@@ -30,16 +45,21 @@ const looks = [
     alt: 'A solitary figure standing beneath a rain-darkened railway overpass',
   },
 ];
+
+const highlights = ['Manual control', 'Live looks', 'HEIC + RAW', 'Private by default'];
 ---
 
 <Layout
-  title="Iris — A camera with a point of view"
-  description="Iris is a private, focused camera for iPhone with direct manual controls and original live looks."
+  title="Iris — Open-source, control-first iPhone camera"
+  description="Iris is an open-source iPhone camera app with direct manual control and live looks—built in the open."
 >
   <div class="site-frame">
     <header class="site-header">
       <a class="wordmark" href="#top" aria-label="Iris home">
-        <span class="iris-mark" aria-hidden="true"></span>
+        <svg class="iris-mark" viewBox="0 0 64 64" aria-hidden="true">
+          <circle class="mark-ring" cx="32" cy="32" r="19" fill="none" stroke="currentColor" stroke-width="9" stroke-dasharray="14 5"></circle>
+          <circle class="mark-core" cx="32" cy="32" r="5" fill="var(--signal-red)"></circle>
+        </svg>
         <span>IRIS</span>
       </a>
 
@@ -50,49 +70,56 @@ const looks = [
       </nav>
 
       <a class="button button-dark header-cta" href="#early-access">
-        Get early access <span aria-hidden="true">↗</span>
+        Early access <span aria-hidden="true">↗</span>
       </a>
     </header>
 
     <main id="top">
       <section class="hero" aria-labelledby="hero-title">
-        <div class="hero-copy">
-          <p class="eyebrow"><span></span> Camera, reconsidered</p>
-          <h1 id="hero-title">
-            The frame comes first.<br />
-            <span>You control the rest.</span>
-          </h1>
-          <p class="hero-intro">
-            A focused iPhone camera for fast automatic capture, precise manual control,
-            and original looks you can see before the shot.
-          </p>
-          <div class="hero-actions">
-            <a class="button button-light" href="#early-access">
-              Get early access <span aria-hidden="true">↗</span>
-            </a>
-            <a class="button button-ghost" href="#features">Explore Iris</a>
-          </div>
-        </div>
-
-        <div class="hero-visual" aria-label="A preview of the Iris camera interface">
+        <div class="hero-atmosphere" aria-hidden="true">
           <div class="orbit orbit-one"></div>
           <div class="orbit orbit-two"></div>
           <div class="orbit orbit-three"></div>
           <div class="red-glow"></div>
+        </div>
 
-          <div class="floating-chip chip-look">
+        <div class="hero-copy">
+          <p class="eyebrow hero-motion"><span></span> Open source camera app</p>
+          <h1 id="hero-title" class="hero-motion">
+            The <em class="headline-accent">open-source</em> camera for <em class="headline-accent">iPhone</em>.
+          </h1>
+          <p class="hero-intro hero-motion">
+            An open-source iPhone camera app with direct manual control
+            and live looks you can see before the shot.
+          </p>
+          <div class="hero-actions">
+            <a class="button button-light button-compact hero-motion" href="#early-access">
+              Early access <span aria-hidden="true">↗</span>
+            </a>
+            <a class="button button-ghost button-compact hero-motion" href="#features">Explore Iris</a>
+          </div>
+        </div>
+
+        <div class="hero-visual" aria-label="A preview of the Iris camera interface">
+          <div class="floating-chip chip-look hero-motion">
             <span class="chip-dot"></span>
             <span><small>IRIS LOOK</small> NATURAL</span>
           </div>
-          <div class="floating-chip chip-raw">
+          <div class="floating-chip chip-raw hero-motion">
             <span><small>FORMAT</small> RAW + HEIC</span>
           </div>
 
-          <div class="phone">
+          <div class="phone hero-motion">
             <div class="phone-bezel">
               <div class="phone-screen">
                 <div class="phone-status">
-                  <div class="mini-brand"><span class="mini-mark"></span> IRIS</div>
+                  <div class="mini-brand">
+                    <svg class="mini-mark" viewBox="0 0 64 64" aria-hidden="true">
+                      <circle cx="32" cy="32" r="19" fill="none" stroke="currentColor" stroke-width="9" stroke-dasharray="14 5"></circle>
+                      <circle cx="32" cy="32" r="5" fill="var(--signal-red)"></circle>
+                    </svg>
+                    IRIS
+                  </div>
                   <span class="camera-state"><i></i> BACK</span>
                   <span class="frame-count"><strong>36</strong><small>FRAMES</small></span>
                 </div>
@@ -134,93 +161,168 @@ const looks = [
             </div>
           </div>
 
-          <p class="visual-note"><span></span> Designed around the photograph—not the interface.</p>
+          <p class="visual-note hero-motion"><span></span> Designed around the photograph—not the interface.</p>
         </div>
       </section>
 
-      <div class="capability-strip" aria-label="Iris highlights">
+      <div class="capability-strip reveal" aria-label="Iris highlights">
         <p>Made for photographers who want more from the camera they always carry.</p>
-        <span>Manual control</span>
-        <span>Live looks</span>
-        <span>HEIC + RAW</span>
-        <span>Private by default</span>
+        <ul>
+          {highlights.map((item) => (
+            <li>
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <circle cx="8" cy="8" r="3" fill="var(--signal-red)"></circle>
+                <circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3 2"></circle>
+              </svg>
+              {item}
+            </li>
+          ))}
+        </ul>
       </div>
 
-      <section class="principles" id="principles">
-        <p class="section-label">01 / The Iris approach</p>
-        <div>
-          <p class="statement-kicker">A phone can be a real camera.</p>
+      <section class="section principles" id="principles">
+        <header class="section-meta reveal">
+          <p class="section-label">01 / Approach</p>
+          <p class="section-kicker">A phone can be a real camera.</p>
+        </header>
+        <div class="section-body reveal">
           <h2>More intention.<br /><span>Less interface.</span></h2>
+          <p class="section-copy">
+            Iris stays fast when the moment is brief, then reveals direct photographic
+            controls when you reach for them. No feed. No account. Nothing between you
+            and the frame.
+          </p>
         </div>
-        <p class="principle-copy">
-          Iris stays fast when the moment is brief, then reveals direct photographic
-          controls when you reach for them. No feed. No account. Nothing between you
-          and the frame.
-        </p>
+        <aside class="section-diagram reveal" aria-hidden="true">
+          <svg class="diagram" viewBox="0 0 160 160">
+            <circle class="diagram-ring" cx="80" cy="80" r="62" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="4 6"></circle>
+            <circle class="diagram-ring" cx="80" cy="80" r="42" fill="none" stroke="currentColor" stroke-width="1"></circle>
+            <circle class="diagram-ring" cx="80" cy="80" r="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="10 4"></circle>
+            <circle class="diagram-core" cx="80" cy="80" r="6" fill="var(--signal-red)"></circle>
+            <line x1="80" y1="8" x2="80" y2="28" stroke="currentColor" stroke-width="1"></line>
+            <line x1="80" y1="132" x2="80" y2="152" stroke="currentColor" stroke-width="1"></line>
+            <line x1="8" y1="80" x2="28" y2="80" stroke="currentColor" stroke-width="1"></line>
+            <line x1="132" y1="80" x2="152" y2="80" stroke="currentColor" stroke-width="1"></line>
+          </svg>
+        </aside>
       </section>
 
-      <section class="features" id="features">
-        <div class="section-head">
-          <p class="section-label">02 / Built for the frame</p>
+      <section class="section features" id="features">
+        <header class="section-head reveal">
+          <p class="section-label">02 / Features</p>
           <h2>Everything essential.<br /><span>Nothing extra.</span></h2>
-        </div>
+        </header>
+
         <div class="feature-grid">
-          {capabilities.map(([number, title, copy]) => (
-            <article>
-              <span class="feature-number">{number}</span>
-              <div class="feature-icon" aria-hidden="true"><i></i></div>
-              <h3>{title}</h3>
-              <p>{copy}</p>
+          {capabilities.map((item, index) => (
+            <article class="feature-item reveal" style={`--delay: ${index * 80}ms`}>
+              <div class="feature-top">
+                <span class="feature-number">{item.number}</span>
+                <svg class="feature-icon" viewBox="0 0 48 48" aria-hidden="true">
+                  {item.icon === 'control' && (
+                    <>
+                      <circle class="icon-stroke" cx="24" cy="24" r="16" fill="none" stroke="currentColor" stroke-width="1.5"></circle>
+                      <circle class="icon-stroke" cx="24" cy="24" r="9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="5 3"></circle>
+                      <circle cx="24" cy="24" r="2.5" fill="var(--signal-red)"></circle>
+                      <path class="icon-stroke" d="M24 6v4M24 38v4M6 24h4M38 24h4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                    </>
+                  )}
+                  {item.icon === 'look' && (
+                    <>
+                      <ellipse class="icon-stroke" cx="24" cy="24" rx="18" ry="11" fill="none" stroke="currentColor" stroke-width="1.5"></ellipse>
+                      <circle class="icon-stroke" cx="24" cy="24" r="7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="6 3"></circle>
+                      <circle cx="24" cy="24" r="2.5" fill="var(--signal-red)"></circle>
+                    </>
+                  )}
+                  {item.icon === 'files' && (
+                    <>
+                      <rect class="icon-stroke" x="12" y="10" width="20" height="26" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"></rect>
+                      <rect class="icon-stroke" x="16" y="14" width="20" height="26" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"></rect>
+                      <path class="icon-stroke" d="M20 24h12M20 29h8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                      <circle cx="34" cy="16" r="2" fill="var(--signal-red)"></circle>
+                    </>
+                  )}
+                </svg>
+              </div>
+              <h3>{item.title}</h3>
+              <p>{item.copy}</p>
             </article>
           ))}
         </div>
       </section>
 
-      <section class="looks" id="looks">
-        <div class="looks-copy">
-          <p class="section-label">03 / Original Iris Looks</p>
+      <section class="section looks" id="looks">
+        <header class="looks-copy reveal">
+          <p class="section-label">03 / Looks</p>
           <h2>Color with<br /><span>a point of view.</span></h2>
-          <p>
+          <p class="section-copy">
             A small set of considered renderings, shown live in the viewfinder and
             applied with care to the final image.
           </p>
-        </div>
-        <div class="look-cards">
+        </header>
+
+        <div class="look-rail">
           {looks.map((look, index) => (
-            <article class={`look-card look-${look.className}`}>
+            <article class={`look-card look-${look.className} reveal`} style={`--delay: ${index * 90}ms`}>
               <div class="look-art">
                 <img src={look.image} alt={look.alt} width="960" height="1440" loading="lazy" />
+                <svg class="look-frame" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                  <rect x="1" y="1" width="98" height="98" fill="none" stroke="currentColor" stroke-width="0.6" stroke-dasharray="3 2"></rect>
+                </svg>
               </div>
               <div class="look-meta">
                 <span>0{index + 1}</span>
-                <div><h3>{look.name}</h3><p>{look.description}</p></div>
+                <div>
+                  <h3>{look.name}</h3>
+                  <p>{look.description}</p>
+                </div>
               </div>
             </article>
           ))}
         </div>
       </section>
 
-      <section class="early-access" id="early-access">
-        <p class="section-label">In development / iPhone first</p>
-        <h2>Be there for<br /><span>the first frame.</span></h2>
-        <div class="early-copy">
-          <p>
+      <section class="section early-access" id="early-access">
+        <header class="section-meta reveal">
+          <p class="section-label">In development</p>
+          <p class="section-kicker">iPhone first</p>
+        </header>
+        <div class="section-body reveal">
+          <h2>Be there for<br /><span>the first frame.</span></h2>
+          <p class="section-copy">
             Iris is being built for photographers who want their phone to feel more
             like a camera. Early access details will be announced here.
           </p>
-          <a class="button button-light" href="mailto:hello@iris.camera?subject=Iris%20early%20access">
-            Join early access <span aria-hidden="true">↗</span>
+          <a class="button button-light button-compact" href="mailto:hello@iris.camera?subject=Iris%20early%20access">
+            Early access <span aria-hidden="true">↗</span>
           </a>
         </div>
+        <aside class="section-diagram reveal" aria-hidden="true">
+          <svg class="diagram diagram-small" viewBox="0 0 120 120">
+            <circle class="diagram-ring" cx="60" cy="60" r="46" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="12 5"></circle>
+            <circle class="diagram-ring" cx="60" cy="60" r="28" fill="none" stroke="currentColor" stroke-width="1"></circle>
+            <circle class="diagram-core" cx="60" cy="60" r="5" fill="var(--signal-red)"></circle>
+          </svg>
+        </aside>
       </section>
     </main>
 
     <footer>
       <a class="wordmark" href="#top" aria-label="Iris home">
-        <span class="iris-mark" aria-hidden="true"></span><span>IRIS</span>
+        <svg class="iris-mark" viewBox="0 0 64 64" aria-hidden="true">
+          <circle class="mark-ring" cx="32" cy="32" r="19" fill="none" stroke="currentColor" stroke-width="9" stroke-dasharray="14 5"></circle>
+          <circle class="mark-core" cx="32" cy="32" r="5" fill="var(--signal-red)"></circle>
+        </svg>
+        <span>IRIS</span>
       </a>
       <p>Photography, in your hands.</p>
       <p>© {new Date().getFullYear()} Iris</p>
     </footer>
   </div>
+
+  <script>
+    import { initPageMotion } from '../scripts/page-motion';
+
+    initPageMotion();
+  </script>
 </Layout>
