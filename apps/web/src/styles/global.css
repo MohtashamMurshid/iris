@@ -343,7 +343,7 @@ h2 span { color: var(--fog); font-weight: 400; }
 }
 
 .viewfinder {
-  --lens-scale: 1.08;
+  --lens-scale: 1.46;
   --focus-x: 50%;
   --focus-y: 50%;
   --iso-brightness: 1;
@@ -352,6 +352,9 @@ h2 span { color: var(--fog); font-weight: 400; }
   --look-contrast: 1.04;
   --look-sepia: 0;
   --look-grayscale: 0;
+  --look-brightness: 1;
+  --look-hue: 0deg;
+  --capture-blur: 0px;
   --capture-flash-opacity: .3;
   position: relative;
   min-height: 0;
@@ -367,13 +370,39 @@ h2 span { color: var(--fog); font-weight: 400; }
   object-position: 50% 61%;
   filter:
     brightness(var(--iso-brightness))
+    brightness(var(--look-brightness))
     saturate(var(--look-saturation))
     contrast(var(--look-contrast))
     sepia(var(--look-sepia))
-    grayscale(var(--look-grayscale));
+    grayscale(var(--look-grayscale))
+    hue-rotate(var(--look-hue))
+    blur(var(--capture-blur));
   transform: scaleX(var(--camera-direction, 1)) scale(var(--lens-scale));
   transform-origin: var(--focus-x) var(--focus-y);
   transition: filter 360ms ease, transform 560ms cubic-bezier(.22, 1, .36, 1), transform-origin 300ms ease;
+}
+
+.viewfinder.is-zooming .viewfinder-photo {
+  transition:
+    filter 220ms ease,
+    transform 520ms cubic-bezier(.16, 1, .3, 1),
+    transform-origin 300ms ease;
+}
+
+.viewfinder.is-zooming::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+  background: radial-gradient(circle at var(--focus-x) var(--focus-y), transparent 28%, rgb(5 5 6 / 22%) 100%);
+  animation: lens-zoom-shade 520ms ease-out;
+}
+
+@keyframes lens-zoom-shade {
+  0% { opacity: 0; }
+  35% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 .camera-grain {
@@ -508,6 +537,35 @@ h2 span { color: var(--fog); font-weight: 400; }
 .shutter i { width: 42px; height: 42px; background: var(--chalk); border-radius: 50%; transition: transform 130ms ease, background 180ms ease; }
 .shutter:hover i { transform: scale(.94); }
 .shutter:active i { background: var(--signal-red); transform: scale(.82); }
+.capture-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 78px;
+}
+.last-shot {
+  display: none;
+  overflow: hidden;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgb(244 242 237 / 28%) !important;
+  border-radius: 8px;
+  background: var(--ink);
+}
+.last-shot.has-photo {
+  display: grid;
+  animation: last-shot-in 380ms cubic-bezier(.22, 1, .36, 1);
+}
+.last-shot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+@keyframes last-shot-in {
+  0% { opacity: 0; transform: scale(.7) translateY(6px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
 .camera-flip { display: grid; width: 36px; height: 36px; border: 1px solid var(--line) !important; border-radius: 50%; background: var(--graphite); font-size: 16px; place-items: center; transition: transform 300ms ease, border-color 180ms ease; }
 .camera-flip:hover { border-color: rgb(244 242 237 / 30%) !important; transform: rotate(180deg); }
 
@@ -1026,7 +1084,9 @@ footer .wordmark { color: var(--chalk); }
   .diagram-core,
   .camera-flash,
   .focus-reticle,
-  .frame-count strong {
+  .frame-count strong,
+  .viewfinder.is-zooming::after,
+  .last-shot.has-photo {
     animation: none !important;
   }
 
@@ -1038,7 +1098,8 @@ footer .wordmark { color: var(--chalk); }
   .tool-row > button,
   .look-control > i,
   .shutter i,
-  .camera-flip {
+  .camera-flip,
+  .last-shot {
     transition: none;
   }
 }

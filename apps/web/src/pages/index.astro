@@ -166,7 +166,12 @@ const highlights = ['Manual control', 'Live looks', 'HEIC + RAW', 'Private by de
                   <div class="capture-row">
                     <button type="button" class="look-control" data-look aria-label="Change Iris Look"><i></i><b><small>IRIS LOOK</small><span>NATURAL</span></b></button>
                     <button type="button" class="shutter" data-capture aria-label="Take demo photo"><i></i></button>
-                    <button type="button" class="camera-flip" data-camera-flip aria-label="Flip camera">↻</button>
+                    <div class="capture-actions">
+                      <button type="button" class="last-shot" data-last-shot hidden aria-label="Download last photo">
+                        <img alt="" width="72" height="72" />
+                      </button>
+                      <button type="button" class="camera-flip" data-camera-flip aria-label="Flip camera">↻</button>
+                    </div>
                   </div>
                   <span class="camera-announcer" data-camera-announcer aria-live="polite"></span>
                 </div>
