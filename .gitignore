@@ -2,6 +2,7 @@
 
 # dependencies
 node_modules/
+.turbo/
 
 # Expo
 .expo/
@@ -39,5 +40,5 @@ yarn-error.*
 example
 
 # generated native folders
-/ios
-/android
+/apps/mobile/ios
+/apps/mobile/android
