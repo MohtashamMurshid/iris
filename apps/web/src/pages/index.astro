@@ -103,13 +103,13 @@ const highlights = ['Manual control', 'Live looks', 'HEIC + RAW', 'Private by de
         <div class="hero-visual" aria-label="A preview of the Iris camera interface">
           <div class="floating-chip chip-look hero-motion">
             <span class="chip-dot"></span>
-            <span><small>IRIS LOOK</small> NATURAL</span>
+            <span><small>IRIS LOOK</small><strong data-floating-look>NATURAL</strong></span>
           </div>
           <div class="floating-chip chip-raw hero-motion">
-            <span><small>FORMAT</small> RAW + HEIC</span>
+            <span><small>FORMAT</small><strong data-floating-format>RAW + HEIC</strong></span>
           </div>
 
-          <div class="phone hero-motion">
+          <div class="phone hero-motion" data-camera-demo>
             <div class="phone-bezel">
               <div class="phone-screen">
                 <div class="phone-status">
@@ -120,42 +120,55 @@ const highlights = ['Manual control', 'Live looks', 'HEIC + RAW', 'Private by de
                     </svg>
                     IRIS
                   </div>
-                  <span class="camera-state"><i></i> BACK</span>
+                  <span class="camera-state"><i></i><span data-camera-label>BACK</span></span>
                   <span class="frame-count"><strong>36</strong><small>FRAMES</small></span>
                 </div>
 
-                <div class="viewfinder">
+                <div class="viewfinder" data-viewfinder>
                   <img
                     class="viewfinder-photo"
+                    data-camera-image
                     src="/images/iris-hero.jpg"
                     alt=""
                     width="1024"
                     height="1536"
                   />
+                  <div class="camera-grain" aria-hidden="true"></div>
+                  <div class="camera-flash" aria-hidden="true"></div>
                   <div class="grid-lines" aria-hidden="true"></div>
                   <div class="preview-label"><i></i> STYLE PREVIEW</div>
-                  <div class="exposure-pill"><span>1/125</span><i></i><span>ISO 64</span></div>
+                  <div class="exposure-pill">
+                    <button type="button" data-shutter-speed aria-label="Change shutter speed">1/125</button>
+                    <i aria-hidden="true"></i>
+                    <button type="button" data-iso aria-label="Change ISO">ISO 64</button>
+                  </div>
                   <div class="focus-reticle"><i></i></div>
-                  <div class="lens-rail">
-                    <span>24</span><span>28</span><strong>35</strong><span>50</span><small>MM</small>
+                  <div class="lens-rail" aria-label="Focal length">
+                    <button type="button" data-lens="24" aria-label="24 millimeter lens">24</button>
+                    <button type="button" data-lens="28" aria-label="28 millimeter lens">28</button>
+                    <button type="button" class="active" data-lens="35" aria-label="35 millimeter lens" aria-pressed="true">35</button>
+                    <button type="button" data-lens="50" aria-label="50 millimeter lens">50</button>
+                    <small>MM</small>
                   </div>
                 </div>
 
                 <div class="control-deck">
                   <div class="mode-switch">
-                    <span class="active">PHOTO<i></i></span><span>MANUAL</span>
+                    <button type="button" class="active" data-mode="photo" aria-pressed="true">PHOTO<i></i></button>
+                    <button type="button" data-mode="manual" aria-pressed="false">MANUAL<i></i></button>
                   </div>
                   <div class="tool-row">
-                    <span><i>◫</i><strong>HEIC</strong><small>FORMAT</small></span>
-                    <span><i>ϟ</i><strong>OFF</strong><small>FLASH</small></span>
-                    <span><i>◎</i><strong>AUTO</strong><small>FOCUS</small></span>
-                    <span><i>▦</i><strong>3 × 3</strong><small>GRID</small></span>
+                    <button type="button" data-format aria-label="Change file format"><i>◫</i><strong>HEIC</strong><small>FORMAT</small></button>
+                    <button type="button" data-flash aria-label="Toggle flash" aria-pressed="false"><i>ϟ</i><strong>OFF</strong><small>FLASH</small></button>
+                    <button type="button" data-focus aria-label="Refocus camera"><i>◎</i><strong>AUTO</strong><small>FOCUS</small></button>
+                    <button type="button" class="active" data-grid aria-label="Toggle composition grid" aria-pressed="true"><i>▦</i><strong>3 × 3</strong><small>GRID</small></button>
                   </div>
                   <div class="capture-row">
-                    <span class="look-control"><i></i><b><small>IRIS LOOK</small>NATURAL</b></span>
-                    <span class="shutter"><i></i></span>
-                    <span class="camera-flip">↻</span>
+                    <button type="button" class="look-control" data-look aria-label="Change Iris Look"><i></i><b><small>IRIS LOOK</small><span>NATURAL</span></b></button>
+                    <button type="button" class="shutter" data-capture aria-label="Take demo photo"><i></i></button>
+                    <button type="button" class="camera-flip" data-camera-flip aria-label="Flip camera">↻</button>
                   </div>
+                  <span class="camera-announcer" data-camera-announcer aria-live="polite"></span>
                 </div>
               </div>
             </div>
@@ -322,7 +335,9 @@ const highlights = ['Manual control', 'Live looks', 'HEIC + RAW', 'Private by de
 
   <script>
     import { initPageMotion } from '../scripts/page-motion';
+    import { initCameraDemo } from '../scripts/camera-demo';
 
     initPageMotion();
+    initCameraDemo();
   </script>
 </Layout>
