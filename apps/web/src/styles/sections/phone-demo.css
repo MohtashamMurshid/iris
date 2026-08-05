@@ -80,6 +80,7 @@
   --look-hue: 0deg;
   --capture-blur: 0px;
   --capture-flash-opacity: .3;
+
   position: relative;
   min-height: 0;
   overflow: hidden;
@@ -300,7 +301,7 @@
   padding: 0;
   margin: -1px;
   overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
 }

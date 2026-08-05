@@ -1,6 +1,6 @@
 /* Motion initial states — Motion drives the entrance */
-.hero-motion,
-.reveal {
+.js .hero-motion,
+.js .reveal {
   opacity: 0;
 }
 
@@ -30,7 +30,7 @@
 .chip-look { transform: rotate(4deg); }
 .chip-raw { transform: rotate(-3deg); }
 
-.hero-atmosphere .orbit {
+.js .hero-atmosphere .orbit {
   opacity: 0;
 }
 
@@ -60,6 +60,7 @@
   .camera-grain,
   .grid-lines,
   .focus-reticle,
+  .button,
   .lens-rail button,
   .tool-row > button,
   .look-control > i,
@@ -68,4 +69,6 @@
   .last-shot {
     transition: none;
   }
+
+  .button:hover { transform: none; }
 }

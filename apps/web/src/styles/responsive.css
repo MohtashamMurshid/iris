@@ -1,5 +1,5 @@
 @media (max-width: 980px) {
-  nav { display: none; }
+  .site-header nav { display: none; }
   .site-header { grid-template-columns: 1fr 1fr; }
 
   .hero {
@@ -99,7 +99,7 @@
     bottom: 25px;
     left: 20px;
     justify-content: center;
-    font-size: 8px;
+    font-size: 10px;
     text-align: center;
   }
 
@@ -140,5 +140,5 @@
     min-height: 84px;
     padding: 0 18px;
   }
-  footer > p:first-of-type { display: none; }
+  footer .footer-tagline { display: none; }
 }
