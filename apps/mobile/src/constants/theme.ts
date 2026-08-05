@@ -7,6 +7,24 @@ import '@/global.css';
 
 import { Platform } from 'react-native';
 
+export const IrisColors = {
+  opticalBlack: '#050506',
+  ink: '#101012',
+  carbon: '#17171A',
+  graphite: '#242429',
+  chalk: '#F4F2ED',
+  fog: '#98989F',
+  signalRed: '#F20D2F',
+  line: 'rgba(244,242,237,0.12)',
+} as const;
+
+export const IrisFonts = {
+  displayRegular: 'Rajdhani_400Regular',
+  displayMedium: 'Rajdhani_500Medium',
+  displaySemiBold: 'Rajdhani_600SemiBold',
+  displayBold: 'Rajdhani_700Bold',
+} as const;
+
 export const Colors = {
   light: {
     text: '#000000',
@@ -16,11 +34,11 @@ export const Colors = {
     textSecondary: '#60646C',
   },
   dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    text: IrisColors.chalk,
+    background: IrisColors.opticalBlack,
+    backgroundElement: IrisColors.carbon,
+    backgroundSelected: IrisColors.graphite,
+    textSecondary: IrisColors.fog,
   },
 } as const;
 

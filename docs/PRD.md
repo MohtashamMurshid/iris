@@ -3,7 +3,7 @@
 ## Product requirements document
 
 **Status:** Draft  
-**Version:** 1.0  
+**Version:** 1.2<br>
 **Target:** iPhone  
 **Project:** Iris  
 **Last updated:** August 5, 2026
@@ -98,6 +98,7 @@ Uses the iPhone as a scouting or secondary camera and needs RAW output, reliable
 4. **Respect the hardware.** Display only controls and ranges supported by the active device and format.
 5. **Fast by default, deep on demand.** Auto mode should be immediately usable; advanced controls should be one gesture away.
 6. **Original, not imitative.** Iris can serve the same user need as Leica LUX without copying its protected assets or proprietary profiles.
+7. **Feel like an optical instrument.** The interface should be calm, precise, tactile, and immediately readable against a live photographic image.
 
 ## 6. Scope and priority
 
@@ -362,7 +363,89 @@ Every gesture needs a visible button or discoverable alternative for accessibili
 - Fast swipes accelerate; slow swipes permit precise adjustment.
 - Disabled values remain absent rather than merely dimmed when the device cannot support them.
 
-## 8. Accessibility
+## 8. Visual design language
+
+### Style name and intent
+
+The Iris design language is called **Iris Optical Instrument**. The broader interface style can be described as **optical-instrument minimalism**: a dark, photo-first system that combines the precision of professional camera controls with restrained retro-futurist typography and bold geometric symbols.
+
+The user-provided visual reference establishes mood and interaction density, not a screen to reproduce. Iris must have its own proportions, color signature, typography, logo construction, icon drawings, and component details.
+
+The desired qualities are:
+
+- **Instrument-like:** controls feel calibrated, stable, and purpose-built.
+- **Photo-first:** the live image dominates; chrome recedes until requested.
+- **Tactile but flat:** matte layered surfaces, firm outlines, and clear pressed states without ornamental skeuomorphism.
+- **Retro-futurist, not nostalgic:** condensed technical lettering and geometric forms, balanced by modern spacing and accessibility.
+- **Quiet with one signal color:** near-black neutrals carry the interface; color communicates selection, focus, or capture state.
+
+### Color and surfaces
+
+The proposed core palette is:
+
+| Token | Starting value | Use |
+| --- | --- | --- |
+| Optical Black | `#050506` | App background and letterboxing |
+| Carbon | `#17171A` | Primary trays, rails, and sheets |
+| Graphite | `#242429` | Raised or pressed controls |
+| Chalk | `#F4F2ED` | Primary text and active icons |
+| Fog | `#98989F` | Secondary labels and inactive controls |
+| Signal Red | `#F20D2F` | Sparing selection accents such as the active-mode underline |
+
+- Use Signal Red sparingly. It may mark a selected mode or another tiny, high-value state; it must not outline whole control groups or dominate the viewfinder.
+- Use a separate semantic destructive red if required so destructive actions cannot be confused with ordinary selection.
+- Use amber for exposure, thermal, or slow-shutter cautions.
+- Large control trays use opaque or nearly opaque matte charcoal so the viewfinder cannot make controls illegible.
+- Surfaces use generous continuous corners, subtle one-pixel borders, and minimal shadow. Avoid glassy blur, glossy gradients, and excessive glow.
+- Final token values must pass contrast testing on top of both the darkest and brightest representative viewfinder frames.
+
+### Typography
+
+- **Brand/display and camera data:** use **Rajdhani Medium/SemiBold** as the initial candidate, or commission/license an original equivalent. The target character is condensed, squared, slightly rounded, and technical rather than sci-fi decorative.
+- **Small controls, body copy, permissions, and accessibility-heavy screens:** use the iOS system font (San Francisco) for maximum clarity and Dynamic Type support.
+- Use tabular numerals for shutter speed, ISO, EV, focal length, counters, and other changing measurements so values do not jump horizontally.
+- Uppercase may be used for short modes and instrument labels. Do not set instructions, error messages, or long labels in all caps.
+- Limit the product to these two typographic voices. Typography must remain readable at compact sizes and cannot be the only indicator of state.
+- Confirm font licensing, bundle size, diacritics, and rendering on the oldest supported iPhone before locking the display family.
+
+### Logo and app icon
+
+- The Iris logo should be an original geometric **iris/aperture symbol** with a simple silhouette and a recognizable negative-space detail. A subtle `I` or focus-point idea may be integrated if it survives reduction.
+- Do not reproduce the reference's diamond-and-ring mark, hand imagery, Leica marks, or any recognizable third-party camera branding.
+- The symbol must work in one color, at 16 points in the interface, and at App Store scale.
+- Use the same six-segment aperture mark as the Iris website. The interface logo is white; do not color it with the accent.
+- The app icon should use an Optical Black or Carbon field with the white aperture mark. A monochrome inverse variant must also exist for constrained contexts.
+- The wordmark `IRIS` should use the display type direction but receive custom spacing or letter modifications so it reads as a brand rather than unmodified typeset text.
+- Logo source artwork must be vector-based and optically corrected at small sizes.
+
+### Iconography
+
+- Use a consistent 24-point outline system with approximately 1.75–2-point strokes, rounded caps, rounded joins, and simple geometric construction.
+- Prefer familiar camera metaphors. Use SF Symbols where the symbol is semantically exact and stylistically compatible; create original icons for specialist camera concepts.
+- Active controls use a contained gray background, increased stroke weight, or a clear label. Signal Red is reserved for small selection indicators rather than control outlines. Off/disabled states must also use a slash, shape, label, or opacity change so color is never the sole cue.
+- Every specialist icon requires a visible text label in expanded trays and an accessible name everywhere.
+- Do not trace or lightly modify icons from the visual reference or another camera app.
+
+### Components, layout, and motion
+
+- The viewfinder is full-bleed. Controls dock to the edges or rise in large rounded instrument trays rather than appearing as many unrelated floating pills.
+- Primary actions are visually dominant; secondary settings live in a clear grid with consistent cells and labels.
+- Selected tabs use a short Signal Red rule or contained neutral highlight. Selection treatment must remain visible without relying only on color.
+- Spacing should feel deliberate and slightly generous, with a strict underlying grid and optical alignment for circular controls and numerals.
+- Transitions should feel mechanical and settled: short tray slides, restrained fades, and subtle press compression. Avoid playful bounce or continuous decorative motion.
+- Respect Reduce Motion and keep the viewfinder stable while controls animate.
+
+### Visual acceptance criteria
+
+- A new screen is recognizably part of Iris when shown without the logo.
+- The live frame remains the dominant visual element on the capture screen.
+- Text and controls remain legible over a bright, dark, or high-detail scene.
+- The primary capture action and current shooting state are identifiable in under one second.
+- All interactive controls meet the 44-by-44-point minimum target and expose accessible labels and states.
+- The logo, type, and icon system remain distinct from the visual reference and named competitor products after side-by-side review.
+- Design tokens, licensed font files, vector logo masters, and the icon grid are stored as versioned product assets before release.
+
+## 9. Accessibility
 
 - Support VoiceOver labels, values, hints, and adjustable actions for every dial.
 - Meet a minimum 44-by-44-point touch target.
@@ -372,7 +455,7 @@ Every gesture needs a visible button or discoverable alternative for accessibili
 - Shutter and save state require visual feedback; sound and haptics are supplementary.
 - Test one-handed operation with left and right hands.
 
-## 9. Technical architecture
+## 10. Technical architecture
 
 ### Existing foundation
 
@@ -450,7 +533,7 @@ Implementation is outside this PRD task, but the intended structure is:
 - `src/features/settings/` — persisted user preferences.
 - `src/components/` — reusable presentation components.
 
-## 10. Performance and reliability
+## 11. Performance and reliability
 
 ### Targets
 
@@ -474,7 +557,7 @@ When thermal or frame pressure is detected:
 
 The app must communicate any persistent quality or format downgrade.
 
-## 11. Privacy and security
+## 12. Privacy and security
 
 - Core capture and Look processing occur on-device.
 - Do not upload photos or metadata in v1.
@@ -483,7 +566,7 @@ The app must communicate any persistent quality or format downgrade.
 - Temporary captures must be removed after save, export, cancellation, or a documented recovery period.
 - Privacy copy must match actual runtime behavior.
 
-## 12. Development environment
+## 13. Development environment
 
 VisionCamera and frame processors contain native code and are not available in Expo Go. Iris therefore requires a custom development build.
 
@@ -518,7 +601,7 @@ VisionCamera and frame processors contain native code and are not available in E
 - Confirm whether reliable depth data can be captured alongside the desired still formats.
 - Test shutter feedback because iOS can suppress Taptic Engine feedback while the camera is active.
 
-## 13. Delivery roadmap
+## 14. Delivery roadmap
 
 Milestones are exit-criteria based. Calendar estimates follow after the native compatibility spike.
 
@@ -583,7 +666,7 @@ Milestones are exit-criteria based. Calendar estimates follow after the native c
 
 **Exit:** Release checklist passes on the supported device matrix.
 
-## 14. Success metrics
+## 15. Success metrics
 
 ### Product metrics
 
@@ -601,7 +684,7 @@ Milestones are exit-criteria based. Calendar estimates follow after the native c
 - No photo-loss defect remains open at release.
 - Supported-device test coverage includes the oldest supported class, a current base iPhone, and a current Pro iPhone.
 
-## 15. Risks and mitigations
+## 16. Risks and mitigations
 
 | Risk | Impact | Mitigation |
 | --- | --- | --- |
@@ -615,7 +698,7 @@ Milestones are exit-criteria based. Calendar estimates follow after the native c
 | Camera switching causes interrupted frames | Corrupt capture | Disable capture during transitions and stress-test every supported lens path |
 | Branded look or lens imitation creates IP risk | Legal and store risk | Use original names, recipes, assets, and marketing; obtain legal review before release |
 
-## 16. Open questions
+## 17. Open questions
 
 These decisions are not required to start M0, but must be resolved before public beta.
 
@@ -630,7 +713,7 @@ These decisions are not required to start M0, but must be resolved before public
 9. Which device is the performance reference for the 60fps target?
 10. Is simulated aperture important enough to justify an iPhone-model support split?
 
-## 17. Release acceptance
+## 18. Release acceptance
 
 The first public release is ready when:
 
@@ -643,7 +726,7 @@ The first public release is ready when:
 - Product copy accurately distinguishes optical switching, digital crop, RAW output, and simulated aperture.
 - Privacy disclosures match an on-device, no-upload v1 architecture.
 
-## 18. Source notes
+## 19. Source notes
 
 Technical assumptions in this PRD are based on:
 
