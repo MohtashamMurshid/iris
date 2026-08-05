@@ -1,0 +1,16 @@
+footer {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  min-height: 96px;
+  padding: 0 36px;
+  color: var(--fog);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+footer p { margin: 0; }
+footer p:last-child { justify-self: end; }
+footer .wordmark { color: var(--chalk); }

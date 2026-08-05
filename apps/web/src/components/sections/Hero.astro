@@ -1,0 +1,45 @@
+---
+import PhoneDemo from './PhoneDemo.astro';
+---
+
+<section class="hero" aria-labelledby="hero-title">
+  <div class="hero-atmosphere" aria-hidden="true">
+    <div class="orbit orbit-one"></div>
+    <div class="orbit orbit-two"></div>
+    <div class="orbit orbit-three"></div>
+    <div class="red-glow"></div>
+  </div>
+
+  <div class="hero-copy">
+    <p class="eyebrow hero-motion"><span></span> Open source camera app</p>
+    <h1 id="hero-title" class="hero-motion">
+      The <em class="headline-accent">open-source</em> camera for <em class="headline-accent"
+        >iPhone</em
+      >.
+    </h1>
+    <p class="hero-intro hero-motion">
+      An open-source iPhone camera app with direct manual control and live looks you can see before
+      the shot.
+    </p>
+    <div class="hero-actions">
+      <a class="button button-light button-compact hero-motion" href="#early-access">
+        Early access <span aria-hidden="true">↗</span>
+      </a>
+      <a class="button button-ghost button-compact hero-motion" href="#features">Explore Iris</a>
+    </div>
+  </div>
+
+  <div class="hero-visual" aria-label="A preview of the Iris camera interface">
+    <div class="floating-chip chip-look hero-motion">
+      <span class="chip-dot"></span>
+      <span><small>IRIS LOOK</small><strong data-floating-look>NATURAL</strong></span>
+    </div>
+    <div class="floating-chip chip-raw hero-motion">
+      <span><small>FORMAT</small><strong data-floating-format>RAW + HEIC</strong></span>
+    </div>
+
+    <PhoneDemo />
+
+    <p class="visual-note hero-motion"><span></span> Designed around the photograph—not the interface.</p>
+  </div>
+</section>

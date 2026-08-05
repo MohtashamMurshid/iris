@@ -1,0 +1,42 @@
+---
+import { earlyAccessEmail } from '../../data/content';
+---
+
+<section class="section early-access" id="early-access">
+  <header class="section-meta reveal">
+    <p class="section-label">In development</p>
+    <p class="section-kicker">iPhone first</p>
+  </header>
+  <div class="section-body reveal">
+    <h2>Be there for<br /><span>the first frame.</span></h2>
+    <p class="section-copy">
+      Iris is being built for photographers who want their phone to feel more like a camera. Early
+      access details will be announced here.
+    </p>
+    <a class="button button-light button-compact" href={earlyAccessEmail}>
+      Early access <span aria-hidden="true">↗</span>
+    </a>
+  </div>
+  <aside class="section-diagram reveal" aria-hidden="true">
+    <svg class="diagram diagram-small" viewBox="0 0 120 120">
+      <circle
+        class="diagram-ring"
+        cx="60"
+        cy="60"
+        r="46"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1"
+        stroke-dasharray="12 5"></circle>
+      <circle
+        class="diagram-ring"
+        cx="60"
+        cy="60"
+        r="28"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1"></circle>
+      <circle class="diagram-core" cx="60" cy="60" r="5" fill="var(--signal-red)"></circle>
+    </svg>
+  </aside>
+</section>

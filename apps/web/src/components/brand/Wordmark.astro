@@ -1,0 +1,15 @@
+---
+import IrisMark from './IrisMark.astro';
+
+interface Props {
+  href?: string;
+  label?: string;
+}
+
+const { href = '#top', label = 'Iris home' } = Astro.props;
+---
+
+<a class="wordmark" href={href} aria-label={label}>
+  <IrisMark />
+  <span>IRIS</span>
+</a>

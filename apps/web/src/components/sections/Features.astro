@@ -1,0 +1,26 @@
+---
+import FeatureIcon from '../icons/FeatureIcon.astro';
+import { capabilities } from '../../data/content';
+---
+
+<section class="section features" id="features">
+  <header class="section-head reveal">
+    <p class="section-label">02 / Features</p>
+    <h2>Everything essential.<br /><span>Nothing extra.</span></h2>
+  </header>
+
+  <div class="feature-grid">
+    {
+      capabilities.map((item, index) => (
+        <article class="feature-item reveal" style={`--delay: ${index * 80}ms`}>
+          <div class="feature-top">
+            <span class="feature-number">{item.number}</span>
+            <FeatureIcon name={item.icon} />
+          </div>
+          <h3>{item.title}</h3>
+          <p>{item.copy}</p>
+        </article>
+      ))
+    }
+  </div>
+</section>

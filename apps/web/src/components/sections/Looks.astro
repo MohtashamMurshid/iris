@@ -1,0 +1,52 @@
+---
+import { looks } from '../../data/content';
+---
+
+<section class="section looks" id="looks">
+  <header class="looks-copy reveal">
+    <p class="section-label">03 / Looks</p>
+    <h2>Color with<br /><span>a point of view.</span></h2>
+    <p class="section-copy">
+      A small set of considered renderings, shown live in the viewfinder and applied with care to
+      the final image.
+    </p>
+  </header>
+
+  <div class="look-rail">
+    {
+      looks.map((look, index) => (
+        <article
+          class={`look-card look-${look.className} reveal`}
+          style={`--delay: ${index * 90}ms`}
+        >
+          <div class="look-art">
+            <img src={look.image} alt={look.alt} width="960" height="1440" loading="lazy" />
+            <svg
+              class="look-frame"
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+            >
+              <rect
+                x="1"
+                y="1"
+                width="98"
+                height="98"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="0.6"
+                stroke-dasharray="3 2"></rect>
+            </svg>
+          </div>
+          <div class="look-meta">
+            <span>0{index + 1}</span>
+            <div>
+              <h3>{look.name}</h3>
+              <p>{look.description}</p>
+            </div>
+          </div>
+        </article>
+      ))
+    }
+  </div>
+</section>

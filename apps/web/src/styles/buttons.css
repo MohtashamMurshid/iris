@@ -1,0 +1,28 @@
+.button {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 23px;
+  border: 1px solid transparent;
+  border-radius: 28px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+}
+
+.button:hover { transform: translateY(-2px); }
+.button-light { background: var(--chalk); color: var(--optical-black); }
+.button-light:hover { background: white; }
+.button-dark { background: var(--graphite); border-color: var(--line); }
+.button-dark:hover, .button-ghost:hover { border-color: rgb(244 242 237 / 30%); }
+.button-ghost { border-color: var(--line); background: rgb(23 23 26 / 72%); }
+.button-compact {
+  min-height: 40px;
+  padding: 0 16px;
+  font-size: 11px;
+  letter-spacing: .1em;
+}
