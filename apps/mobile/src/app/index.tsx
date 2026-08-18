@@ -1,5 +1,8 @@
+import { CameraView, type CameraType, type FlashMode } from 'expo-camera';
+import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -11,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { IrisMark } from '@/components/iris-mark';
 import { IrisColors, IrisFonts } from '@/constants/theme';
+import { CameraPermissionGate } from '@/features/camera/camera-permission-gate';
 
 type Mode = 'PHOTO' | 'MANUAL';
 type ToolId = 'format' | 'flash' | 'timer' | 'grid' | 'level' | 'focus' | 'look' | 'histogram';
@@ -86,18 +90,34 @@ const TOOL_ALTERNATES: Record<ToolId, [string, string]> = {
   histogram: ['ON', 'OFF'],
 };
 
-export default function CameraConceptScreen() {
+export default function CameraScreen() {
+  return (
+    <CameraPermissionGate>
+      <CameraExperience />
+    </CameraPermissionGate>
+  );
+}
+
+function CameraExperience() {
+  const cameraRef = useRef<CameraView>(null);
   const [mode, setMode] = useState<Mode>('PHOTO');
   const [lens, setLens] = useState('35');
   const [tools, setTools] = useState(INITIAL_TOOLS);
   const [capturedCount, setCapturedCount] = useState(0);
   const [captureFlash, setCaptureFlash] = useState(false);
-  const [cameraFacing, setCameraFacing] = useState<'BACK' | 'FRONT'>('BACK');
+  const [cameraFacing, setCameraFacing] = useState<CameraType>('back');
+  const [cameraReady, setCameraReady] = useState(false);
+  const [captureError, setCaptureError] = useState<string | null>(null);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [latestPhotoUri, setLatestPhotoUri] = useState<string | null>(null);
+  const [showLatestPhoto, setShowLatestPhoto] = useState(false);
   const [focusPoint, setFocusPoint] = useState({ x: 50, y: 45 });
   const [viewfinderSize, setViewfinderSize] = useState({ width: 1, height: 1 });
 
   const activeLook = tools.find((tool) => tool.id === 'look')?.value ?? 'NATURAL';
   const gridEnabled = tools.find((tool) => tool.id === 'grid')?.value !== 'OFF';
+  const flashMode: FlashMode =
+    tools.find((tool) => tool.id === 'flash')?.value === 'AUTO' ? 'auto' : 'off';
 
   useEffect(() => {
     if (!captureFlash) return;
@@ -130,9 +150,43 @@ export default function CameraConceptScreen() {
     });
   }
 
-  function capture() {
+  async function capture() {
+    if (!cameraRef.current || !cameraReady || isCapturing || showLatestPhoto) return;
+
+    setCaptureError(null);
     setCaptureFlash(true);
-    setCapturedCount((count) => count + 1);
+    setIsCapturing(true);
+
+    if (process.env.EXPO_OS === 'ios') {
+      void Haptics.selectionAsync().catch(() => undefined);
+    }
+
+    try {
+      const photo = await cameraRef.current.takePictureAsync({ quality: 0.9 });
+      setLatestPhotoUri(photo.uri);
+      setCapturedCount((count) => count + 1);
+    } catch {
+      setCaptureError('That photo was not captured. The camera is ready for another try.');
+    } finally {
+      setIsCapturing(false);
+    }
+  }
+
+  function toggleFacing() {
+    if (isCapturing) return;
+    setCameraReady(false);
+    setCameraFacing((value) => (value === 'back' ? 'front' : 'back'));
+  }
+
+  function reviewLatestPhoto() {
+    if (!latestPhotoUri || isCapturing) return;
+    setCameraReady(false);
+    setShowLatestPhoto(true);
+  }
+
+  function returnToCamera() {
+    setCameraReady(false);
+    setShowLatestPhoto(false);
   }
 
   return (
@@ -147,7 +201,7 @@ export default function CameraConceptScreen() {
 
             <View style={styles.sessionState}>
               <View style={styles.liveDot} />
-              <Text style={styles.sessionText}>{cameraFacing}</Text>
+              <Text style={styles.sessionText}>{showLatestPhoto ? 'REVIEW' : cameraFacing.toUpperCase()}</Text>
             </View>
 
             <View style={styles.counterPill}>
@@ -157,18 +211,37 @@ export default function CameraConceptScreen() {
           </View>
 
           <Pressable
-            accessibilityHint="Moves the simulated focus point"
-            accessibilityLabel="Camera preview prototype"
+            accessibilityHint="Moves the focus indicator"
+            accessibilityLabel={showLatestPhoto ? 'Latest captured photo' : 'Live camera preview'}
             onLayout={(event) => setViewfinderSize(event.nativeEvent.layout)}
-            onPress={setFocus}
+            onPress={showLatestPhoto ? undefined : setFocus}
             style={styles.viewfinder}>
-            <View style={styles.sceneGlow} />
-            <View style={styles.sceneOrb} />
-            <View style={styles.sceneColumn} />
-            <View style={styles.scenePlane} />
-            <View style={styles.sceneShadow} />
+            {showLatestPhoto && latestPhotoUri ? (
+              <Image contentFit="cover" source={latestPhotoUri} style={StyleSheet.absoluteFill} />
+            ) : (
+              <CameraView
+                active={!showLatestPhoto}
+                autofocus="on"
+                facing={cameraFacing}
+                flash={flashMode}
+                mirror={cameraFacing === 'front'}
+                mode="picture"
+                onCameraReady={() => {
+                  setCameraReady(true);
+                  setCaptureError(null);
+                }}
+                onMountError={(event) => {
+                  setCameraReady(false);
+                  setCaptureError(event.message);
+                }}
+                pointerEvents="none"
+                ref={cameraRef}
+                responsiveOrientationWhenOrientationLocked
+                style={StyleSheet.absoluteFill}
+              />
+            )}
 
-            {gridEnabled && (
+            {!showLatestPhoto && gridEnabled && (
               <View style={[StyleSheet.absoluteFill, styles.nonInteractive]}>
                 <View style={[styles.gridLineVertical, { left: '33.333%' }]} />
                 <View style={[styles.gridLineVertical, { left: '66.666%' }]} />
@@ -177,48 +250,65 @@ export default function CameraConceptScreen() {
               </View>
             )}
 
-            <View style={styles.exposureChip}>
-              <Text style={styles.exposureText}>1/125</Text>
-              <View style={styles.exposureDivider} />
-              <Text style={styles.exposureText}>ISO 64</Text>
-            </View>
+            {!showLatestPhoto && (
+              <View style={styles.exposureChip}>
+                <Text style={styles.exposureText}>1/125</Text>
+                <View style={styles.exposureDivider} />
+                <Text style={styles.exposureText}>ISO 64</Text>
+              </View>
+            )}
 
-            <View
-              style={[
-                styles.focusReticle,
-                styles.nonInteractive,
-                { left: `${focusPoint.x}%`, top: `${focusPoint.y}%` },
-              ]}>
-              <View style={styles.focusDot} />
-            </View>
+            {!showLatestPhoto && (
+              <View
+                style={[
+                  styles.focusReticle,
+                  styles.nonInteractive,
+                  { left: `${focusPoint.x}%`, top: `${focusPoint.y}%` },
+                ]}>
+                <View style={styles.focusDot} />
+              </View>
+            )}
 
             <View style={styles.previewLabel}>
               <View style={styles.previewLabelDot} />
-              <Text style={styles.previewLabelText}>STYLE PREVIEW</Text>
+              <Text style={styles.previewLabelText}>
+                {showLatestPhoto ? 'LAST CAPTURE' : cameraReady ? 'LIVE CAMERA' : 'STARTING CAMERA'}
+              </Text>
             </View>
 
-            <View style={styles.lensRail}>
-              {LENSES.map((value) => {
-                const selected = lens === value;
-                return (
-                  <Pressable
-                    accessibilityLabel={`${value} millimeter lens`}
-                    accessibilityState={{ selected }}
-                    key={value}
-                    onPress={() => setLens(value)}
-                    style={({ pressed }) => [
-                      styles.lensButton,
-                      selected && styles.lensButtonSelected,
-                      pressed && styles.pressed,
-                    ]}>
-                    <Text style={[styles.lensText, selected && styles.lensTextSelected]}>
-                      {value}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-              <Text style={styles.millimeterLabel}>MM</Text>
-            </View>
+            {showLatestPhoto && (
+              <Pressable
+                accessibilityLabel="Return to live camera"
+                onPress={returnToCamera}
+                style={({ pressed }) => [styles.reviewCloseButton, pressed && styles.pressed]}>
+                <Text style={styles.reviewCloseText}>BACK TO CAMERA</Text>
+              </Pressable>
+            )}
+
+            {!showLatestPhoto && (
+              <View style={styles.lensRail}>
+                {LENSES.map((value) => {
+                  const selected = lens === value;
+                  return (
+                    <Pressable
+                      accessibilityLabel={`${value} millimeter lens`}
+                      accessibilityState={{ selected }}
+                      key={value}
+                      onPress={() => setLens(value)}
+                      style={({ pressed }) => [
+                        styles.lensButton,
+                        selected && styles.lensButtonSelected,
+                        pressed && styles.pressed,
+                      ]}>
+                      <Text style={[styles.lensText, selected && styles.lensTextSelected]}>
+                        {value}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+                <Text style={styles.millimeterLabel}>MM</Text>
+              </View>
+            )}
 
             {captureFlash && (
               <View style={[styles.captureFlash, styles.nonInteractive]} />
@@ -226,6 +316,11 @@ export default function CameraConceptScreen() {
           </Pressable>
 
           <View style={styles.controlDeck}>
+            {captureError && (
+              <View accessibilityRole="alert" style={styles.errorBanner}>
+                <Text selectable style={styles.errorText}>{captureError}</Text>
+              </View>
+            )}
             <View style={styles.modeTabs}>
               {(['PHOTO', 'MANUAL'] as const).map((value) => {
                 const selected = mode === value;
@@ -279,30 +374,39 @@ export default function CameraConceptScreen() {
 
             <View style={styles.captureRail}>
               <Pressable
-                accessibilityLabel={`Current look: ${activeLook}`}
-                onPress={() => toggleTool('look')}
+                accessibilityLabel={latestPhotoUri ? 'Review latest photo' : `Current look: ${activeLook}`}
+                disabled={!latestPhotoUri || isCapturing}
+                onPress={reviewLatestPhoto}
                 style={({ pressed }) => [styles.lookControl, pressed && styles.pressed]}>
-                <View style={styles.lookSwatch} />
+                <View style={styles.lookSwatch}>
+                  {latestPhotoUri && (
+                    <Image contentFit="cover" source={latestPhotoUri} style={StyleSheet.absoluteFill} />
+                  )}
+                </View>
                 <View>
-                  <Text style={styles.lookLabel}>IRIS LOOK</Text>
-                  <Text style={styles.lookValue}>{activeLook}</Text>
+                  <Text style={styles.lookLabel}>{latestPhotoUri ? 'LAST SHOT' : 'IRIS LOOK'}</Text>
+                  <Text style={styles.lookValue}>{latestPhotoUri ? 'REVIEW' : activeLook}</Text>
                 </View>
               </Pressable>
 
               <Pressable
                 accessibilityLabel="Take photo"
                 accessibilityRole="button"
+                accessibilityState={{ busy: isCapturing, disabled: !cameraReady || showLatestPhoto }}
+                disabled={!cameraReady || isCapturing || showLatestPhoto}
                 onPress={capture}
                 style={({ pressed }) => [
                   styles.shutterOuter,
+                  (!cameraReady || isCapturing || showLatestPhoto) && styles.shutterDisabled,
                   pressed && styles.shutterPressed,
                 ]}>
                 <View style={styles.shutterInner} />
               </Pressable>
 
               <Pressable
-                accessibilityLabel={`Switch to ${cameraFacing === 'BACK' ? 'front' : 'back'} camera`}
-                onPress={() => setCameraFacing((value) => (value === 'BACK' ? 'FRONT' : 'BACK'))}
+                accessibilityLabel={`Switch to ${cameraFacing === 'back' ? 'front' : 'back'} camera`}
+                disabled={isCapturing || showLatestPhoto}
+                onPress={toggleFacing}
                 style={({ pressed }) => [styles.flipButton, pressed && styles.pressed]}>
                 <SymbolView
                   fallback={<Text style={styles.symbolFallback}>↻</Text>}
@@ -533,6 +637,26 @@ const styles = StyleSheet.create({
     fontSize: 9,
     letterSpacing: 1.4,
   },
+  reviewCloseButton: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(5,5,6,0.82)',
+    borderColor: 'rgba(244,242,237,0.2)',
+    borderCurve: 'continuous',
+    borderRadius: 16,
+    borderWidth: 1,
+    minHeight: 44,
+    paddingHorizontal: 15,
+    position: 'absolute',
+    right: 13,
+    top: 9,
+    justifyContent: 'center',
+  },
+  reviewCloseText: {
+    color: IrisColors.chalk,
+    fontFamily: IrisFonts.displaySemiBold,
+    fontSize: 10,
+    letterSpacing: 1.1,
+  },
   lensRail: {
     alignItems: 'center',
     alignSelf: 'center',
@@ -584,6 +708,22 @@ const styles = StyleSheet.create({
     marginTop: -1,
     paddingBottom: 4,
     paddingHorizontal: 14,
+  },
+  errorBanner: {
+    backgroundColor: 'rgba(242,13,47,0.14)',
+    borderColor: 'rgba(242,13,47,0.4)',
+    borderCurve: 'continuous',
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  errorText: {
+    color: IrisColors.chalk,
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: 'center',
   },
   modeTabs: {
     alignItems: 'stretch',
@@ -682,6 +822,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     borderWidth: 1,
     height: 30,
+    overflow: 'hidden',
     width: 24,
   },
   lookLabel: {
@@ -716,6 +857,9 @@ const styles = StyleSheet.create({
   shutterPressed: {
     borderColor: IrisColors.fog,
     transform: [{ scale: 0.94 }],
+  },
+  shutterDisabled: {
+    opacity: 0.38,
   },
   flipButton: {
     alignItems: 'center',

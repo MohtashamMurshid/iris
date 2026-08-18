@@ -12,8 +12,10 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "mobile": "npm run start --workspace=@iris/mobile",
+    "mobile:dev-client": "npm run dev-client --workspace=@iris/mobile",
     "mobile:android": "npm run android --workspace=@iris/mobile",
     "mobile:ios": "npm run ios --workspace=@iris/mobile",
+    "mobile:ios:device": "npm run ios:device --workspace=@iris/mobile",
     "mobile:web": "npm run web --workspace=@iris/mobile",
     "web": "npm run dev --workspace=@iris/web",
     "web:build": "npm run build --workspace=@iris/web"

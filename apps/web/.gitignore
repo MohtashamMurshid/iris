@@ -42,3 +42,6 @@ example
 # generated native folders
 /apps/mobile/ios
 /apps/mobile/android
+
+# Astro generated types and local server state
+.astro/
