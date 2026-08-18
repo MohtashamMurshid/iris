@@ -42,3 +42,11 @@ example
 # generated native folders
 /apps/mobile/ios
 /apps/mobile/android
+
+# Astro generated types and local server state
+.astro/
+
+# Local agent skills. Reinstall them on a machine; do not ship copies.
+.agents/
+.claude/skills/
+skills-lock.json
