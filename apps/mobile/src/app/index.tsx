@@ -179,7 +179,7 @@ function CameraExperience() {
   }
 
   function reviewLatestPhoto() {
-    if (!latestPhotoUri) return;
+    if (!latestPhotoUri || isCapturing) return;
     setCameraReady(false);
     setShowLatestPhoto(true);
   }
@@ -375,7 +375,7 @@ function CameraExperience() {
             <View style={styles.captureRail}>
               <Pressable
                 accessibilityLabel={latestPhotoUri ? 'Review latest photo' : `Current look: ${activeLook}`}
-                disabled={!latestPhotoUri}
+                disabled={!latestPhotoUri || isCapturing}
                 onPress={reviewLatestPhoto}
                 style={({ pressed }) => [styles.lookControl, pressed && styles.pressed]}>
                 <View style={styles.lookSwatch}>

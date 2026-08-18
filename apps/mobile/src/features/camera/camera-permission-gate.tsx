@@ -105,7 +105,7 @@ export function CameraPermissionGate({ children }: PropsWithChildren) {
                 fontSize: 17,
                 fontWeight: '700',
               }}>
-              {mustUseSettings ? 'Open iPhone Settings' : hasAnswered ? 'Try again' : 'Continue'}
+              {mustUseSettings ? 'Open Settings' : hasAnswered ? 'Try again' : 'Continue'}
             </Text>
           )}
         </Pressable>
