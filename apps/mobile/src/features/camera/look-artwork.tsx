@@ -71,6 +71,29 @@ export function LookArtwork({ look, size, selected = false }: LookArtworkProps) 
   );
 }
 
+export function FilmWindow({ look, size, selected = false }: LookArtworkProps) {
+  const hole = Math.max(3, Math.round(size * 0.09));
+
+  return (
+    <View style={{ height: size, width: size }}>
+      <LookArtwork look={look} selected={selected} size={size} />
+      <View style={styles.sprockets}>
+        {[0, 1, 2, 3].map((index) => (
+          <View
+            key={index}
+            style={{
+              backgroundColor: 'rgba(8,8,10,0.55)',
+              borderRadius: 1,
+              height: hole,
+              width: hole * 0.7,
+            }}
+          />
+        ))}
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   frame: {
     overflow: 'hidden',
@@ -78,5 +101,13 @@ const styles = StyleSheet.create({
   selected: {
     borderColor: CameraChrome.amber,
     borderWidth: 3,
+  },
+  sprockets: {
+    bottom: 5,
+    justifyContent: 'space-between',
+    left: 4,
+    pointerEvents: 'none',
+    position: 'absolute',
+    top: 5,
   },
 });

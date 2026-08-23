@@ -32,7 +32,7 @@ import {
   SplitLinesIcon,
 } from '@/features/camera/chrome-icons';
 import { GlassPanel } from '@/features/camera/glass-panel';
-import { LookArtwork } from '@/features/camera/look-artwork';
+import { FilmWindow } from '@/features/camera/look-artwork';
 import { LookPicker } from '@/features/camera/look-picker';
 import { ViewfinderMock } from '@/features/camera/viewfinder-mock';
 
@@ -111,7 +111,10 @@ export function CameraShell() {
               </View>
             </View>
           ) : (
-            <View />
+            <View style={styles.statusCluster}>
+              {flashOn ? <Text style={styles.statusChip}>FLASH</Text> : null}
+              {timerOn ? <Text style={styles.statusChip}>3s</Text> : null}
+            </View>
           )}
 
           <Pressable
@@ -148,40 +151,39 @@ export function CameraShell() {
               />
               {!afOn && <FocusScale />}
               <EvStrip onChange={setEvComp} value={evComp} />
+              <View style={styles.innerToolbar}>
+                <Pressable
+                  accessibilityLabel={`RAW ${rawEnabled ? 'on' : 'off'}`}
+                  accessibilityState={{ selected: rawEnabled }}
+                  onPress={() => setRawEnabled((value) => !value)}
+                  style={({ pressed }) => [styles.flexButton, pressed && styles.pressed]}>
+                  <GlassPanel style={[styles.toolButton, rawEnabled && styles.toolButtonOn]}>
+                    <Text style={[styles.rawText, !rawEnabled && styles.rawTextOff]}>RAW</Text>
+                  </GlassPanel>
+                </Pressable>
+
+                <Pressable
+                  accessibilityLabel={`Aspect ratio ${aspect.label}`}
+                  onPress={() => toggleMenu('aspect')}
+                  style={({ pressed }) => [styles.flexButton, pressed && styles.pressed]}
+                  testID="aspect-button">
+                  <GlassPanel style={styles.toolButton}>
+                    <AspectRatioIcon />
+                  </GlassPanel>
+                </Pressable>
+
+                <Pressable
+                  accessibilityLabel={`Composition overlay ${overlay}`}
+                  onPress={() => toggleMenu('overlay')}
+                  style={({ pressed }) => [styles.flexButton, pressed && styles.pressed]}
+                  testID="overlay-button">
+                  <GlassPanel style={[styles.toolButton, overlay !== 'off' && styles.toolButtonOn]}>
+                    <GridCellsIcon />
+                  </GlassPanel>
+                </Pressable>
+              </View>
             </View>
           )}
-        </View>
-
-        <View style={styles.toolbarRow}>
-          <Pressable
-            accessibilityLabel={`RAW ${rawEnabled ? 'on' : 'off'}`}
-            accessibilityState={{ selected: rawEnabled }}
-            onPress={() => setRawEnabled((value) => !value)}
-            style={({ pressed }) => [styles.flexButton, pressed && styles.pressed]}>
-            <GlassPanel style={[styles.toolButton, rawEnabled && styles.toolButtonOn]}>
-              <Text style={[styles.rawText, !rawEnabled && styles.rawTextOff]}>RAW</Text>
-            </GlassPanel>
-          </Pressable>
-
-          <Pressable
-            accessibilityLabel={`Aspect ratio ${aspect.label}`}
-            onPress={() => toggleMenu('aspect')}
-            style={({ pressed }) => [styles.flexButton, pressed && styles.pressed]}
-            testID="aspect-button">
-            <GlassPanel style={styles.toolButton}>
-              <AspectRatioIcon />
-            </GlassPanel>
-          </Pressable>
-
-          <Pressable
-            accessibilityLabel={`Composition overlay ${overlay}`}
-            onPress={() => toggleMenu('overlay')}
-            style={({ pressed }) => [styles.flexButton, pressed && styles.pressed]}
-            testID="overlay-button">
-            <GlassPanel style={[styles.toolButton, overlay !== 'off' && styles.toolButtonOn]}>
-              <GridCellsIcon />
-            </GlassPanel>
-          </Pressable>
         </View>
 
         <View style={styles.focusRow}>
@@ -267,7 +269,7 @@ export function CameraShell() {
             }}
             style={({ pressed }) => [styles.thumbWell, pressed && styles.pressed]}
             testID="look-tile">
-            <LookArtwork look={look} selected={lookPickerOpen} size={56} />
+            <FilmWindow look={look} selected={lookPickerOpen} size={56} />
           </Pressable>
         </View>
       </View>
@@ -397,16 +399,20 @@ export function CameraShell() {
 }
 
 function EvStrip({ value, onChange }: { value: number; onChange: (value: number) => void }) {
-  const stops = [-2, -1, 0, 1, 2];
+  const stops = [-2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, 2];
 
   return (
     <View accessibilityLabel={`Exposure compensation ${value}`} style={styles.evStrip}>
       <Text style={styles.evValue}>{`${value > 0 ? '+' : ''}${value.toFixed(1)}`}</Text>
-      {stops.map((stop) => (
-        <Pressable key={stop} onPress={() => onChange(stop === 0 ? 0.3 : stop)} style={styles.evTickHit}>
-          <View style={[styles.evTick, Math.abs(value - stop) < 0.4 && styles.evTickOn]} />
-        </Pressable>
-      ))}
+      {stops.map((stop) => {
+        const major = Number.isInteger(stop);
+        const active = Math.abs(value - stop) < 0.26;
+        return (
+          <Pressable key={stop} onPress={() => onChange(stop)} style={styles.evTickHit}>
+            <View style={[styles.evTick, major && styles.evTickMajor, active && styles.evTickOn]} />
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -415,8 +421,8 @@ function FocusScale() {
   return (
     <View accessibilityLabel="Manual focus scale" style={styles.focusScale}>
       <Text style={styles.focusMark}>∞</Text>
-      {[0, 1, 2, 3, 4, 5].map((tick) => (
-        <View key={tick} style={[styles.focusTick, tick === 2 && styles.focusTickOn]} />
+      {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((tick) => (
+        <View key={tick} style={[styles.focusTick, tick === 3 && styles.focusTickOn]} />
       ))}
       <Text style={styles.focusMark}>N</Text>
     </View>
@@ -463,6 +469,18 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
     lineHeight: 13,
   },
+  statusCluster: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingTop: 8,
+  },
+  statusChip: {
+    color: CameraChrome.amber,
+    fontFamily: ChromeFonts.sans,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
   autoPill: {
     borderCurve: 'continuous',
     borderRadius: CameraChrome.radiusPill,
@@ -508,10 +526,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 220,
   },
-  toolbarRow: {
+  innerToolbar: {
+    bottom: 10,
     flexDirection: 'row',
     gap: 8,
-    marginTop: 12,
+    left: 10,
+    position: 'absolute',
+    right: 10,
   },
   flexButton: {
     flex: 1,
@@ -555,10 +576,12 @@ const styles = StyleSheet.create({
   afButton: {
     alignItems: 'center',
     backgroundColor: CameraChrome.amber,
-    borderRadius: 24,
-    height: 48,
+    borderCurve: 'continuous',
+    borderRadius: 22,
+    height: 40,
     justifyContent: 'center',
-    width: 48,
+    minWidth: 52,
+    paddingHorizontal: 14,
   },
   afButtonOff: {
     backgroundColor: 'transparent',
@@ -750,10 +773,13 @@ const styles = StyleSheet.create({
     width: 22,
   },
   evTick: {
-    backgroundColor: 'rgba(245,196,0,0.35)',
+    backgroundColor: 'rgba(245,196,0,0.28)',
     borderRadius: 1,
     height: 2,
-    width: 12,
+    width: 10,
+  },
+  evTickMajor: {
+    width: 14,
   },
   evTickOn: {
     backgroundColor: CameraChrome.amber,

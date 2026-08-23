@@ -8,19 +8,27 @@ type IconProps = {
 };
 
 export function AspectRatioIcon({ color = CameraChrome.white, size = 22 }: IconProps) {
-  const height = Math.round(size * 0.72);
+  const inner = Math.round(size * 0.46);
   return (
     <View
       style={{
         alignItems: 'center',
         borderColor: color,
         borderRadius: 3,
-        borderWidth: 1.6,
-        height,
+        borderWidth: 1.5,
+        height: Math.round(size * 0.76),
         justifyContent: 'center',
         width: size,
       }}>
-      <View style={{ backgroundColor: color, flex: 1, width: 1.6 }} />
+      <View
+        style={{
+          borderColor: color,
+          borderRadius: 2,
+          borderWidth: 1.2,
+          height: Math.round(inner * 0.72),
+          width: inner,
+        }}
+      />
     </View>
   );
 }
@@ -184,6 +192,203 @@ export function ExposureModeGlyph({ mode }: { mode: 'auto' | 'manual' | 'shutter
       return _never;
     }
   }
+}
+
+export function FitIcon({ color = CameraChrome.white, size = 20 }: IconProps) {
+  const arm = Math.max(5, Math.round(size * 0.3));
+  const thick = 1.6;
+  const corners: { top?: number; bottom?: number; left?: number; right?: number }[] = [
+    { top: 0, left: 0 },
+    { top: 0, right: 0 },
+    { bottom: 0, right: 0 },
+    { bottom: 0, left: 0 },
+  ];
+  return (
+    <View style={{ height: size, width: size }}>
+      {corners.map((corner, index) => (
+        <View key={index} style={{ height: arm, position: 'absolute', width: arm, ...corner }}>
+          <View
+            style={{
+              backgroundColor: color,
+              height: thick,
+              position: 'absolute',
+              top: corner.top === 0 ? 0 : undefined,
+              bottom: corner.bottom === 0 ? 0 : undefined,
+              left: corner.left === 0 ? 0 : undefined,
+              right: corner.right === 0 ? 0 : undefined,
+              width: arm,
+            }}
+          />
+          <View
+            style={{
+              backgroundColor: color,
+              height: arm,
+              position: 'absolute',
+              top: corner.top === 0 ? 0 : undefined,
+              bottom: corner.bottom === 0 ? 0 : undefined,
+              left: corner.left === 0 ? 0 : undefined,
+              right: corner.right === 0 ? 0 : undefined,
+              width: thick,
+            }}
+          />
+        </View>
+      ))}
+    </View>
+  );
+}
+
+export function SparkleIcon({ color = CameraChrome.white, size = 16 }: IconProps) {
+  return (
+    <View style={{ alignItems: 'center', height: size, justifyContent: 'center', width: size }}>
+      <View style={{ backgroundColor: color, borderRadius: 1, height: size, width: 1.6 }} />
+      <View
+        style={{
+          backgroundColor: color,
+          borderRadius: 1,
+          height: 1.6,
+          position: 'absolute',
+          width: size,
+        }}
+      />
+      <View
+        style={{
+          backgroundColor: color,
+          height: size * 0.55,
+          position: 'absolute',
+          transform: [{ rotate: '45deg' }],
+          width: 1.4,
+        }}
+      />
+    </View>
+  );
+}
+
+export function FilmStripIcon({ color = CameraChrome.white, size = 16 }: IconProps) {
+  return (
+    <View
+      style={{
+        borderColor: color,
+        borderRadius: 3,
+        borderWidth: 1.3,
+        flexDirection: 'row',
+        height: size * 0.78,
+        justifyContent: 'space-between',
+        paddingHorizontal: 2,
+        paddingVertical: 2,
+        width: size,
+      }}>
+      {[0, 1, 2].map((hole) => (
+        <View key={hole} style={{ justifyContent: 'space-between' }}>
+          <View style={{ backgroundColor: color, borderRadius: 1, height: 3, width: 2 }} />
+          <View style={{ backgroundColor: color, borderRadius: 1, height: 3, width: 2 }} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
+export function LevelIcon({ color = CameraChrome.white, size = 16 }: IconProps) {
+  return (
+    <View style={{ alignItems: 'center', height: size, justifyContent: 'center', width: size }}>
+      <View style={{ backgroundColor: color, height: 1.5, width: size }} />
+      <View
+        style={{
+          backgroundColor: color,
+          borderRadius: 4,
+          height: 8,
+          position: 'absolute',
+          width: 8,
+        }}
+      />
+    </View>
+  );
+}
+
+export function ContrastIcon({ color = CameraChrome.white, size = 16 }: IconProps) {
+  return (
+    <View
+      style={{
+        borderColor: color,
+        borderRadius: size / 2,
+        borderWidth: 1.4,
+        flexDirection: 'row',
+        height: size,
+        overflow: 'hidden',
+        width: size,
+      }}>
+      <View style={{ flex: 1 }} />
+      <View style={{ backgroundColor: color, flex: 1 }} />
+    </View>
+  );
+}
+
+export function HistogramMiniIcon({ color = CameraChrome.white, size = 16 }: IconProps) {
+  const bars = [0.35, 0.7, 1, 0.55, 0.3];
+  return (
+    <View style={{ alignItems: 'flex-end', flexDirection: 'row', gap: 1.5, height: size, width: size }}>
+      {bars.map((amount, index) => (
+        <View
+          key={index}
+          style={{
+            backgroundColor: color,
+            flex: 1,
+            height: `${Math.round(amount * 100)}%` as `${number}%`,
+          }}
+        />
+      ))}
+    </View>
+  );
+}
+
+export function DropletIcon({ color = CameraChrome.white, size = 14 }: IconProps) {
+  return (
+    <View
+      style={{
+        borderColor: color,
+        borderRadius: size / 2,
+        borderTopLeftRadius: size * 0.15,
+        borderWidth: 1.4,
+        height: size,
+        transform: [{ rotate: '45deg' }],
+        width: size * 0.78,
+      }}
+    />
+  );
+}
+
+export function ThermometerIcon({ color = CameraChrome.white, size = 14 }: IconProps) {
+  return (
+    <View style={{ alignItems: 'center', height: size, width: 10 }}>
+      <View style={{ backgroundColor: color, borderRadius: 2, flex: 1, width: 3 }} />
+      <View
+        style={{
+          backgroundColor: color,
+          borderRadius: 5,
+          height: 8,
+          marginTop: -2,
+          width: 8,
+        }}
+      />
+    </View>
+  );
+}
+
+export function SunIcon({ color = CameraChrome.white, size = 14 }: IconProps) {
+  return (
+    <View style={{ alignItems: 'center', height: size, justifyContent: 'center', width: size }}>
+      <View
+        style={{
+          borderColor: color,
+          borderRadius: 5,
+          borderWidth: 1.4,
+          height: size * 0.45,
+          width: size * 0.45,
+        }}
+      />
+      <View style={{ backgroundColor: color, height: size, position: 'absolute', width: 1.4 }} />
+      <View style={{ backgroundColor: color, height: 1.4, position: 'absolute', width: size }} />
+    </View>
+  );
 }
 
 export function MeterTicks() {

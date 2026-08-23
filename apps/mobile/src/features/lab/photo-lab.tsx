@@ -10,14 +10,29 @@ import {
   FILM_CONTROLS,
   LAB_TABS,
   LOOKS,
+  OVERLAYS,
   WB_PRESETS,
   type AspectId,
   type FilmControlId,
   type LabTab,
   type LookId,
+  type OverlayId,
   type WbPreset,
 } from '@/features/camera/chrome';
-import { CheckIcon } from '@/features/camera/chrome-icons';
+import {
+  AspectRatioIcon,
+  CheckIcon,
+  ContrastIcon,
+  DropletIcon,
+  FilmStripIcon,
+  FitIcon,
+  GridCellsIcon,
+  HistogramMiniIcon,
+  LevelIcon,
+  SparkleIcon,
+  SunIcon,
+  ThermometerIcon,
+} from '@/features/camera/chrome-icons';
 import { GlassPanel } from '@/features/camera/glass-panel';
 import { LookArtwork } from '@/features/camera/look-artwork';
 import { ViewfinderMock } from '@/features/camera/viewfinder-mock';
@@ -47,6 +62,8 @@ export function PhotoLab({ initialLook = 'natural' }: PhotoLabProps) {
   const [exposure, setExposure] = useState(0.3);
   const [contrast, setContrast] = useState(0.4);
   const [aspectId, setAspectId] = useState<AspectId>('3-2');
+  const [overlay, setOverlay] = useState<OverlayId>('thirds');
+  const [fitOn, setFitOn] = useState(false);
   const [level, setLevel] = useState(0);
   const [film, setFilm] = useState(INITIAL_FILM);
   const [wb, setWb] = useState<WbPreset>('auto');
@@ -57,6 +74,7 @@ export function PhotoLab({ initialLook = 'natural' }: PhotoLabProps) {
 
   const topPad = Math.max(insets.top, 10);
   const bottomPad = Math.max(insets.bottom, 14);
+  const previewOverlay = tab === 'frame' ? overlay : 'off';
 
   function close() {
     if (router.canGoBack()) {
@@ -76,36 +94,19 @@ export function PhotoLab({ initialLook = 'natural' }: PhotoLabProps) {
         const next = event.nativeEvent.layout;
         setPreview({ width: next.width, height: next.height });
       }}
-      style={[styles.preview, tab === 'frame' && styles.previewFramed]}>
+      style={[styles.preview, tab === 'frame' && styles.previewFramed, fitOn && styles.previewFit]}>
       {preview.width > 8 && preview.height > 8 ? (
         <ViewfinderMock
           height={preview.height}
           lookId={lookId}
-          overlay={tab === 'frame' ? 'thirds' : 'off'}
+          overlay={previewOverlay}
           width={preview.width}
         />
       ) : null}
     </View>
   );
 
-  const tabs = (
-    <View style={styles.tabRow}>
-      {LAB_TABS.map((item) => {
-        const selected = item.id === tab;
-        return (
-          <Pressable
-            accessibilityRole="tab"
-            accessibilityState={{ selected }}
-            key={item.id}
-            onPress={() => setTab(item.id)}
-            style={styles.tab}
-            testID={`lab-tab-${item.id}`}>
-            <Text style={[styles.tabLabel, selected && styles.tabLabelOn]}>{item.label}</Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
+  const tabs = <LabTabDial onChange={setTab} tab={tab} />;
 
   const actions = (
     <View style={styles.actionBar}>
@@ -116,7 +117,15 @@ export function PhotoLab({ initialLook = 'natural' }: PhotoLabProps) {
         testID="lab-close">
         <Text style={styles.closeMark}>✕</Text>
       </Pressable>
-      <GlassPanel style={styles.toolPill}>{contextTools(tab, aspectId, setAspectId, () => setPresetOpen((v) => !v))}</GlassPanel>
+      {!wide ? (
+        <GlassPanel style={styles.toolPill}>
+          {contextTools(tab, aspectId, overlay, fitOn, setAspectId, setOverlay, setFitOn, () =>
+            setPresetOpen((value) => !value),
+          )}
+        </GlassPanel>
+      ) : (
+        <View style={styles.toolSpacer} />
+      )}
       <Pressable
         accessibilityLabel="Confirm edits"
         onPress={close}
@@ -135,41 +144,88 @@ export function PhotoLab({ initialLook = 'natural' }: PhotoLabProps) {
           <View style={styles.sidebar}>
             {tabs}
             <ScrollView contentContainerStyle={styles.sidebarBody} showsVerticalScrollIndicator={false}>
-              <Text style={styles.section}>QUICK EDIT</Text>
-              <LookRow lookId={lookId} onSelect={setLookId} />
-              <Text style={styles.section}>EXPOSURE</Text>
-              <AnalogDial
-                accessibilityLabel="Exposure"
-                format={signed}
-                icon="☀"
-                max={3}
-                min={-3}
-                onChange={setExposure}
-                value={exposure}
-              />
-              <Text style={styles.section}>FILM</Text>
-              <FilmRow film={film} onChange={setFilmValue} />
-              <Text style={styles.section}>BALANCE</Text>
-              <AnalogDial
-                accessibilityLabel="Tint"
-                format={signed}
-                icon="💧"
-                max={40}
-                min={-40}
-                onChange={setTint}
-                step={1}
-                value={tint}
-              />
-              <AnalogDial
-                accessibilityLabel="Temperature"
-                format={(value) => `${Math.round(value)}K`}
-                icon="°"
-                max={8000}
-                min={2500}
-                onChange={setKelvin}
-                step={50}
-                value={kelvin}
-              />
+              {tab === 'frame' ? (
+                <View style={styles.instrument}>
+                  <AnalogDial
+                    accessibilityLabel="Level"
+                    format={(value) => value.toFixed(1)}
+                    iconNode={<LevelIcon />}
+                    max={15}
+                    min={-15}
+                    onChange={setLevel}
+                    step={0.5}
+                    value={level}
+                  />
+                </View>
+              ) : (
+                <>
+                  <Text style={styles.section}>QUICK EDIT</Text>
+                  <LookRow lookId={lookId} onSelect={setLookId} />
+                  <View style={styles.sectionRow}>
+                    <Text style={styles.section}>EXPOSURE</Text>
+                    <View style={styles.sectionIcons}>
+                      <HistogramMiniIcon />
+                      <ContrastIcon />
+                    </View>
+                  </View>
+                  <View style={styles.instrument}>
+                    <AnalogDial
+                      accessibilityLabel="Exposure"
+                      format={signed}
+                      iconNode={<SunIcon />}
+                      max={3}
+                      min={-3}
+                      onChange={setExposure}
+                      value={exposure}
+                    />
+                  </View>
+                  <View style={styles.sectionRow}>
+                    <Text style={styles.section}>FILM</Text>
+                    <View style={styles.sectionIcons}>
+                      <FilmStripIcon />
+                      <ContrastIcon />
+                    </View>
+                  </View>
+                  <View style={styles.instrument}>
+                    <FilmRow film={film} onChange={setFilmValue} />
+                  </View>
+                  <View style={styles.sectionRow}>
+                    <Text style={styles.section}>BALANCE</Text>
+                    <PresetButton onPress={() => setPresetOpen((value) => !value)} />
+                  </View>
+                  <View style={styles.instrument}>
+                    <AnalogDial
+                      accessibilityLabel="Tint"
+                      format={signed}
+                      iconNode={<DropletIcon />}
+                      max={40}
+                      min={-40}
+                      onChange={setTint}
+                      step={1}
+                      value={tint}
+                    />
+                    <AnalogDial
+                      accessibilityLabel="Temperature"
+                      format={(value) => `${Math.round(value)}K`}
+                      iconNode={<ThermometerIcon />}
+                      max={8000}
+                      min={2500}
+                      onChange={setKelvin}
+                      step={50}
+                      value={kelvin}
+                    />
+                  </View>
+                  {presetOpen ? (
+                    <PresetList
+                      onPick={(id) => {
+                        setWb(id);
+                        setPresetOpen(false);
+                      }}
+                      selected={wb}
+                    />
+                  ) : null}
+                </>
+              )}
             </ScrollView>
             {actions}
           </View>
@@ -185,19 +241,13 @@ export function PhotoLab({ initialLook = 'natural' }: PhotoLabProps) {
         {tabs}
         <View style={styles.pane}>{renderPane()}</View>
         {presetOpen && tab === 'balance' ? (
-          <View style={styles.presetList}>
-            {WB_PRESETS.map((preset) => (
-              <Pressable
-                key={preset.id}
-                onPress={() => {
-                  setWb(preset.id);
-                  setPresetOpen(false);
-                }}
-                style={styles.presetRow}>
-                <Text style={[styles.presetLabel, wb === preset.id && styles.presetOn]}>{preset.label}</Text>
-              </Pressable>
-            ))}
-          </View>
+          <PresetList
+            onPick={(id) => {
+              setWb(id);
+              setPresetOpen(false);
+            }}
+            selected={wb}
+          />
         ) : null}
         {actions}
       </View>
@@ -210,40 +260,44 @@ export function PhotoLab({ initialLook = 'natural' }: PhotoLabProps) {
         return (
           <View style={styles.paneBody}>
             <LookRow lookId={lookId} onSelect={setLookId} />
-            <AnalogDial
-              accessibilityLabel="Exposure"
-              format={signed}
-              icon="☀"
-              max={3}
-              min={-3}
-              onChange={setExposure}
-              value={exposure}
-            />
+            <View style={styles.instrument}>
+              <AnalogDial
+                accessibilityLabel="Exposure"
+                format={signed}
+                iconNode={<SunIcon />}
+                max={3}
+                min={-3}
+                onChange={setExposure}
+                value={exposure}
+              />
+            </View>
           </View>
         );
       case 'frame':
         return (
           <View style={styles.paneBody}>
-            <AnalogDial
-              accessibilityLabel="Level"
-              format={(value) => `${value.toFixed(1)}`}
-              icon="▭"
-              max={15}
-              min={-15}
-              onChange={setLevel}
-              step={0.5}
-              value={level}
-            />
+            <View style={styles.instrument}>
+              <AnalogDial
+                accessibilityLabel="Level"
+                format={(value) => value.toFixed(1)}
+                iconNode={<LevelIcon />}
+                max={15}
+                min={-15}
+                onChange={setLevel}
+                step={0.5}
+                value={level}
+              />
+            </View>
           </View>
         );
       case 'exposure':
         return (
-          <View style={styles.paneBody}>
+          <View style={styles.instrument}>
             <RgbHistogram />
             <AnalogDial
               accessibilityLabel="Exposure"
               format={signed}
-              icon="☀"
+              iconNode={<SunIcon />}
               max={3}
               min={-3}
               onChange={setExposure}
@@ -252,7 +306,7 @@ export function PhotoLab({ initialLook = 'natural' }: PhotoLabProps) {
             <AnalogDial
               accessibilityLabel="Contrast"
               format={signed}
-              icon="◐"
+              iconNode={<ContrastIcon />}
               max={10}
               min={-10}
               onChange={setContrast}
@@ -263,14 +317,18 @@ export function PhotoLab({ initialLook = 'natural' }: PhotoLabProps) {
           </View>
         );
       case 'film':
-        return <FilmRow film={film} onChange={setFilmValue} />;
+        return (
+          <View style={styles.instrument}>
+            <FilmRow film={film} onChange={setFilmValue} />
+          </View>
+        );
       case 'balance':
         return (
-          <View style={styles.paneBody}>
+          <View style={styles.instrument}>
             <AnalogDial
               accessibilityLabel="Tint"
               format={(value) => signed(value, 2)}
-              icon="💧"
+              iconNode={<DropletIcon />}
               max={40}
               min={-40}
               onChange={setTint}
@@ -280,7 +338,7 @@ export function PhotoLab({ initialLook = 'natural' }: PhotoLabProps) {
             <AnalogDial
               accessibilityLabel="Temperature"
               format={(value) => `${Math.round(value)}K`}
-              icon="°"
+              iconNode={<ThermometerIcon />}
               max={8000}
               min={2500}
               onChange={setKelvin}
@@ -297,9 +355,40 @@ export function PhotoLab({ initialLook = 'natural' }: PhotoLabProps) {
   }
 }
 
+function LabTabDial({ tab, onChange }: { tab: LabTab; onChange: (id: LabTab) => void }) {
+  const index = LAB_TABS.findIndex((item) => item.id === tab);
+  const current = LAB_TABS[index];
+  const prev = index > 0 ? LAB_TABS[index - 1] : undefined;
+  const next = index < LAB_TABS.length - 1 ? LAB_TABS[index + 1] : undefined;
+
+  if (!current) return null;
+
+  return (
+    <View style={styles.tabRow}>
+      <Pressable
+        disabled={!prev}
+        onPress={() => prev && onChange(prev.id)}
+        style={styles.tabSide}
+        testID={prev ? `lab-tab-${prev.id}` : undefined}>
+        <Text style={styles.tabLabel}>{prev?.label ?? ' '}</Text>
+      </Pressable>
+      <Text style={[styles.tabLabel, styles.tabLabelOn]} testID={`lab-tab-${current.id}`}>
+        {current.label}
+      </Text>
+      <Pressable
+        disabled={!next}
+        onPress={() => next && onChange(next.id)}
+        style={styles.tabSide}
+        testID={next ? `lab-tab-${next.id}` : undefined}>
+        <Text style={styles.tabLabel}>{next?.label ?? ' '}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 function LookRow({ lookId, onSelect }: { lookId: LookId; onSelect: (id: LookId) => void }) {
   return (
-    <ScrollView contentContainerStyle={styles.lookRow} horizontal showsHorizontalScrollIndicator={false}>
+    <View style={styles.lookRow}>
       {LOOKS.map((item) => {
         const selected = item.id === lookId;
         return (
@@ -309,12 +398,12 @@ function LookRow({ lookId, onSelect }: { lookId: LookId; onSelect: (id: LookId) 
             onPress={() => onSelect(item.id)}
             style={styles.lookItem}
             testID={`lab-look-${item.id}`}>
-            <LookArtwork look={item} selected={selected} size={72} />
+            <LookArtwork look={item} selected={selected} size={58} />
             <Text style={[styles.lookName, selected && styles.lookNameOn]}>{item.name}</Text>
           </Pressable>
         );
       })}
-    </ScrollView>
+    </View>
   );
 }
 
@@ -344,44 +433,85 @@ function FilmRow({
   );
 }
 
+function PresetButton({ onPress }: { onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} style={styles.presetButton} testID="lab-preset">
+      <SunIcon size={12} />
+      <Text style={styles.presetText}>PRESET</Text>
+      <Text style={styles.toolCaption}>∨</Text>
+    </Pressable>
+  );
+}
+
+function PresetList({
+  selected,
+  onPick,
+}: {
+  selected: WbPreset;
+  onPick: (id: WbPreset) => void;
+}) {
+  return (
+    <View style={styles.presetList}>
+      {WB_PRESETS.map((preset) => (
+        <Pressable
+          key={preset.id}
+          onPress={() => onPick(preset.id)}
+          style={styles.presetRow}>
+          <Text style={[styles.presetLabel, selected === preset.id && styles.presetOn]}>{preset.label}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
 function contextTools(
   tab: LabTab,
   aspectId: AspectId,
+  overlay: OverlayId,
+  fitOn: boolean,
   onAspect: (id: AspectId) => void,
+  onOverlay: (id: OverlayId) => void,
+  onFit: (value: boolean) => void,
   onPreset: () => void,
 ) {
   switch (tab) {
     case 'frame':
       return (
         <View style={styles.toolRow}>
-          <Text style={styles.toolGlyph}>▯</Text>
-          <Text style={styles.toolGlyph}>⊞</Text>
-          <Text style={styles.toolGlyph}>⛶</Text>
-          <Text style={styles.toolCaption}>{ASPECTS.find((item) => item.id === aspectId)?.label}</Text>
-          <Pressable onPress={() => onAspect(nextAspect(aspectId))}>
-            <Text style={styles.toolCaption}>cycle</Text>
+          <Pressable
+            accessibilityLabel={`Aspect ${ASPECTS.find((item) => item.id === aspectId)?.label}`}
+            onPress={() => onAspect(nextAspect(aspectId))}>
+            <AspectRatioIcon size={18} />
+          </Pressable>
+          <Pressable
+            accessibilityLabel={`Overlay ${overlay}`}
+            onPress={() => onOverlay(nextOverlay(overlay))}>
+            <GridCellsIcon size={16} />
+          </Pressable>
+          <Pressable accessibilityLabel={fitOn ? 'Fit on' : 'Fit off'} onPress={() => onFit(!fitOn)}>
+            <FitIcon size={16} />
           </Pressable>
         </View>
       );
     case 'quick':
       return (
         <View style={styles.toolRow}>
-          <Text style={styles.toolGlyph}>✦</Text>
-          <Text style={styles.toolGlyph}>≡</Text>
+          <SparkleIcon />
+          <FilmStripIcon />
         </View>
       );
     case 'exposure':
       return (
         <View style={styles.toolRow}>
-          <Text style={styles.toolGlyph}>⋮</Text>
-          <Text style={styles.toolGlyph}>|||</Text>
-          <Text style={styles.toolGlyph}>◐</Text>
+          <HistogramMiniIcon />
+          <ContrastIcon />
+          <SunIcon />
         </View>
       );
     case 'film':
       return (
         <View style={styles.toolRow}>
-          {FILM_CONTROLS.map((control) => (
+          {FILM_CONTROLS.slice(0, 5).map((control) => (
             <Text key={control.id} style={styles.toolGlyph}>
               {control.glyph}
             </Text>
@@ -389,13 +519,7 @@ function contextTools(
         </View>
       );
     case 'balance':
-      return (
-        <Pressable onPress={onPreset} style={styles.presetButton} testID="lab-preset">
-          <Text style={styles.toolGlyph}>☀</Text>
-          <Text style={styles.presetText}>PRESET</Text>
-          <Text style={styles.toolGlyph}>∨</Text>
-        </Pressable>
-      );
+      return <PresetButton onPress={onPreset} />;
     default: {
       const _never: never = tab;
       return _never;
@@ -406,6 +530,11 @@ function contextTools(
 function nextAspect(current: AspectId): AspectId {
   const index = ASPECTS.findIndex((item) => item.id === current);
   return ASPECTS[(index + 1) % ASPECTS.length]?.id ?? '3-2';
+}
+
+function nextOverlay(current: OverlayId): OverlayId {
+  const index = OVERLAYS.findIndex((item) => item.id === current);
+  return OVERLAYS[(index + 1) % OVERLAYS.length]?.id ?? 'thirds';
 }
 
 function signed(value: number, digits = 1): string {
@@ -436,25 +565,32 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
     marginTop: 8,
   },
+  previewFit: {
+    marginHorizontal: 22,
+    marginVertical: 12,
+  },
   tabRow: {
+    alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
   },
-  tab: {
-    paddingHorizontal: 4,
-    paddingVertical: 4,
+  tabSide: {
+    flex: 1,
   },
   tabLabel: {
     color: CameraChrome.muted,
     fontFamily: ChromeFonts.sans,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 0.8,
+    letterSpacing: 1,
+    textAlign: 'center',
   },
   tabLabelOn: {
     color: CameraChrome.white,
+    flex: 1.2,
+    fontSize: 13,
   },
   pane: {
     minHeight: 210,
@@ -464,20 +600,29 @@ const styles = StyleSheet.create({
   paneBody: {
     gap: 14,
   },
+  instrument: {
+    backgroundColor: '#121212',
+    borderCurve: 'continuous',
+    borderRadius: 22,
+    gap: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
   lookRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 6,
+    justifyContent: 'space-between',
     paddingVertical: 4,
   },
   lookItem: {
     alignItems: 'center',
+    flex: 1,
     gap: 6,
-    width: 78,
   },
   lookName: {
     color: CameraChrome.muted,
     fontFamily: ChromeFonts.sans,
-    fontSize: 12,
+    fontSize: 11,
   },
   lookNameOn: {
     color: CameraChrome.white,
@@ -524,10 +669,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 12,
   },
+  toolSpacer: {
+    flex: 1,
+  },
   toolRow: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 14,
+    gap: 16,
     justifyContent: 'center',
   },
   toolGlyph: {
@@ -542,7 +690,7 @@ const styles = StyleSheet.create({
   presetButton: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
   },
   presetText: {
     color: CameraChrome.white,
@@ -553,10 +701,11 @@ const styles = StyleSheet.create({
   },
   presetList: {
     paddingHorizontal: 18,
+    paddingBottom: 8,
   },
   presetRow: {
-    minHeight: 36,
     justifyContent: 'center',
+    minHeight: 36,
   },
   presetLabel: {
     color: CameraChrome.muted,
@@ -581,7 +730,7 @@ const styles = StyleSheet.create({
     width: 360,
   },
   sidebarBody: {
-    gap: 16,
+    gap: 14,
     paddingBottom: 16,
   },
   section: {
@@ -590,7 +739,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 1.2,
-    marginTop: 8,
+  },
+  sectionRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 6,
+  },
+  sectionIcons: {
+    flexDirection: 'row',
+    gap: 10,
   },
   pressed: {
     opacity: 0.7,

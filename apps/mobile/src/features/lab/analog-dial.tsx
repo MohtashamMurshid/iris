@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { type ReactNode, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { CameraChrome, ChromeFonts } from '@/features/camera/chrome';
 
@@ -11,6 +11,7 @@ type AnalogDialProps = {
   onChange: (value: number) => void;
   format?: (value: number) => string;
   icon?: string;
+  iconNode?: ReactNode;
   accessibilityLabel: string;
 };
 
@@ -25,6 +26,7 @@ export function AnalogDial({
   onChange,
   format,
   icon,
+  iconNode,
   accessibilityLabel,
 }: AnalogDialProps) {
   const [width, setWidth] = useState(1);
@@ -43,13 +45,17 @@ export function AnalogDial({
   return (
     <View style={styles.block}>
       <View style={styles.readout}>
-        {icon ? <Text style={styles.icon}>{icon}</Text> : null}
+        {iconNode ? iconNode : icon ? <Text style={styles.icon}>{icon}</Text> : null}
         <Text style={styles.value}>{format ? format(value) : String(value)}</Text>
       </View>
-      <Pressable
+      <View
         accessibilityLabel={`${accessibilityLabel} ${format ? format(value) : value}`}
+        accessibilityRole="adjustable"
         onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
-        onPress={(event) => setFromX(event.nativeEvent.locationX)}
+        onMoveShouldSetResponder={() => true}
+        onResponderGrant={(event) => setFromX(event.nativeEvent.locationX)}
+        onResponderMove={(event) => setFromX(event.nativeEvent.locationX)}
+        onStartShouldSetResponder={() => true}
         style={styles.hit}>
         <View style={[styles.tickRow, { transform: [{ translateX: shiftTicks }] }]}>
           {Array.from({ length: TICKS }, (_, index) => {
@@ -68,7 +74,7 @@ export function AnalogDial({
           })}
         </View>
         <View style={styles.needle} />
-      </Pressable>
+      </View>
     </View>
   );
 }
@@ -111,10 +117,14 @@ export function VerticalDial({
     <View style={styles.column}>
       <Text style={styles.glyph}>{glyph}</Text>
       <Text style={styles.colValue}>{format ? format(value) : String(value)}</Text>
-      <Pressable
+      <View
         accessibilityLabel={`${label} ${format ? format(value) : value}`}
+        accessibilityRole="adjustable"
         onLayout={(event) => setHeight(event.nativeEvent.layout.height)}
-        onPress={(event) => setFromY(event.nativeEvent.locationY)}
+        onMoveShouldSetResponder={() => true}
+        onResponderGrant={(event) => setFromY(event.nativeEvent.locationY)}
+        onResponderMove={(event) => setFromY(event.nativeEvent.locationY)}
+        onStartShouldSetResponder={() => true}
         style={styles.colHit}>
         <View style={[styles.colTicks, { transform: [{ translateY: shift }] }]}>
           {Array.from({ length: 21 }, (_, index) => (
@@ -129,7 +139,7 @@ export function VerticalDial({
           ))}
         </View>
         <View style={styles.colNeedle} />
-      </Pressable>
+      </View>
     </View>
   );
 }
