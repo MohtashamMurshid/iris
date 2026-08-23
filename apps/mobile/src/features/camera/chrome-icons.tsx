@@ -239,23 +239,37 @@ export function FitIcon({ color = CameraChrome.white, size = 20 }: IconProps) {
 
 export function SparkleIcon({ color = CameraChrome.white, size = 16 }: IconProps) {
   return (
-    <View style={{ alignItems: 'center', height: size, justifyContent: 'center', width: size }}>
-      <View style={{ backgroundColor: color, borderRadius: 1, height: size, width: 1.6 }} />
+    <View style={{ height: size, width: size }}>
       <View
         style={{
           backgroundColor: color,
           borderRadius: 1,
-          height: 1.6,
+          height: size * 0.7,
+          left: size * 0.42,
           position: 'absolute',
-          width: size,
+          top: 0,
+          width: 1.5,
         }}
       />
       <View
         style={{
           backgroundColor: color,
-          height: size * 0.55,
+          borderRadius: 1,
+          height: 1.5,
+          left: size * 0.18,
           position: 'absolute',
-          transform: [{ rotate: '45deg' }],
+          top: size * 0.28,
+          width: size * 0.55,
+        }}
+      />
+      <View
+        style={{
+          backgroundColor: color,
+          borderRadius: 1,
+          height: size * 0.32,
+          position: 'absolute',
+          right: 1,
+          top: size * 0.58,
           width: 1.4,
         }}
       />
@@ -374,19 +388,27 @@ export function ThermometerIcon({ color = CameraChrome.white, size = 14 }: IconP
 }
 
 export function SunIcon({ color = CameraChrome.white, size = 14 }: IconProps) {
+  const core = Math.max(5, Math.round(size * 0.42));
+  const inset = (size - core) / 2;
+  const ray = Math.max(2, Math.round(size * 0.18));
   return (
-    <View style={{ alignItems: 'center', height: size, justifyContent: 'center', width: size }}>
+    <View style={{ height: size, width: size }}>
       <View
         style={{
           borderColor: color,
-          borderRadius: 5,
+          borderRadius: core,
           borderWidth: 1.4,
-          height: size * 0.45,
-          width: size * 0.45,
+          height: core,
+          left: inset,
+          position: 'absolute',
+          top: inset,
+          width: core,
         }}
       />
-      <View style={{ backgroundColor: color, height: size, position: 'absolute', width: 1.4 }} />
-      <View style={{ backgroundColor: color, height: 1.4, position: 'absolute', width: size }} />
+      <View style={{ backgroundColor: color, height: ray, left: (size - 1.3) / 2, position: 'absolute', top: 0, width: 1.3 }} />
+      <View style={{ backgroundColor: color, bottom: 0, height: ray, left: (size - 1.3) / 2, position: 'absolute', width: 1.3 }} />
+      <View style={{ backgroundColor: color, height: 1.3, left: 0, position: 'absolute', top: (size - 1.3) / 2, width: ray }} />
+      <View style={{ backgroundColor: color, height: 1.3, position: 'absolute', right: 0, top: (size - 1.3) / 2, width: ray }} />
     </View>
   );
 }
