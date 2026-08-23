@@ -32,6 +32,7 @@ import {
   SplitLinesIcon,
 } from '@/features/camera/chrome-icons';
 import { GlassPanel } from '@/features/camera/glass-panel';
+import { hapticLight, hapticMedium, hapticSelect, hapticTick } from '@/features/camera/haptics';
 import { FilmWindow } from '@/features/camera/look-artwork';
 import { LookPicker } from '@/features/camera/look-picker';
 import { ViewfinderMock } from '@/features/camera/viewfinder-mock';
@@ -69,27 +70,32 @@ export function CameraShell() {
   }, [aspect.widthOverHeight, stageSize.height, stageSize.width]);
 
   function toggleMenu(menu: Exclude<OpenMenu, null>) {
+    hapticLight();
     setLookPickerOpen(false);
     setOpenMenu((current) => (current === menu ? null : menu));
   }
 
   function closeOverlays() {
+    hapticLight();
     setOpenMenu(null);
     setLookPickerOpen(false);
   }
 
   function chooseExposure(mode: ExposureMode) {
+    hapticSelect();
     setExposureMode(mode);
     setOpenMenu(null);
   }
 
   function openLab() {
+    hapticSelect();
     setOpenMenu(null);
     setLookPickerOpen(false);
     router.push({ pathname: '/lab', params: { look: lookId } });
   }
 
   function cycleWb() {
+    hapticSelect();
     const index = WB_PRESETS.findIndex((preset) => preset.id === wb);
     const next = WB_PRESETS[(index + 1) % WB_PRESETS.length];
     if (next) setWb(next.id);
@@ -155,7 +161,10 @@ export function CameraShell() {
                 <Pressable
                   accessibilityLabel={`RAW ${rawEnabled ? 'on' : 'off'}`}
                   accessibilityState={{ selected: rawEnabled }}
-                  onPress={() => setRawEnabled((value) => !value)}
+                  onPress={() => {
+                    hapticSelect();
+                    setRawEnabled((value) => !value);
+                  }}
                   style={({ pressed }) => [styles.flexButton, pressed && styles.pressed]}>
                   <GlassPanel style={[styles.toolButton, rawEnabled && styles.toolButtonOn]}>
                     <Text style={[styles.rawText, !rawEnabled && styles.rawTextOff]}>RAW</Text>
@@ -190,7 +199,10 @@ export function CameraShell() {
           <Pressable
             accessibilityLabel="Focus assist"
             accessibilityState={{ selected: focusAssist }}
-            onPress={() => setFocusAssist((value) => !value)}
+            onPress={() => {
+              hapticLight();
+              setFocusAssist((value) => !value);
+            }}
             style={({ pressed }) => [pressed && styles.pressed]}>
             <GlassPanel style={[styles.circleButton, focusAssist && styles.circleButtonOn]}>
               <SplitLinesIcon color={focusAssist ? CameraChrome.ink : CameraChrome.white} />
@@ -200,7 +212,10 @@ export function CameraShell() {
           <Pressable
             accessibilityLabel={afOn ? 'Autofocus on' : 'Autofocus off'}
             accessibilityState={{ selected: afOn }}
-            onPress={() => setAfOn((value) => !value)}
+            onPress={() => {
+              hapticLight();
+              setAfOn((value) => !value);
+            }}
             style={({ pressed }) => [pressed && styles.pressed]}>
             <View style={[styles.afButton, !afOn && styles.afButtonOff]}>
               <Text style={[styles.afText, !afOn && styles.afTextOff]}>{afOn ? 'AF' : 'MF'}</Text>
@@ -215,7 +230,11 @@ export function CameraShell() {
                   accessibilityLabel={`${stop} times zoom`}
                   accessibilityState={{ selected }}
                   key={stop}
-                  onPress={() => setZoom(stop)}
+                  onPress={() => {
+                    if (stop === zoom) return;
+                    hapticSelect();
+                    setZoom(stop);
+                  }}
                   style={({ pressed }) => [
                     styles.zoomStop,
                     selected && styles.zoomStopSelected,
@@ -255,6 +274,7 @@ export function CameraShell() {
           <Pressable
             accessibilityLabel="Shutter"
             accessibilityRole="button"
+            onPressIn={() => hapticMedium()}
             style={({ pressed }) => [styles.shutterWell, pressed && styles.shutterPressed]}>
             <View style={styles.shutterRing}>
               <View style={styles.shutterInner} />
@@ -264,6 +284,7 @@ export function CameraShell() {
           <Pressable
             accessibilityLabel={`${look.name} look`}
             onPress={() => {
+              hapticLight();
               setOpenMenu(null);
               setLookPickerOpen((value) => !value);
             }}
@@ -308,6 +329,7 @@ export function CameraShell() {
                     accessibilityState={{ selected }}
                     key={item.id}
                     onPress={() => {
+                      hapticSelect();
                       setAspectId(item.id);
                       setOpenMenu(null);
                     }}
@@ -331,6 +353,7 @@ export function CameraShell() {
                     accessibilityState={{ selected }}
                     key={item.id}
                     onPress={() => {
+                      hapticSelect();
                       setOverlay(item.id);
                       setOpenMenu(null);
                     }}
@@ -353,14 +376,20 @@ export function CameraShell() {
                 <Text style={styles.menuLabel}>Photo Lab</Text>
               </Pressable>
               <Pressable
-                onPress={() => setFlashOn((value) => !value)}
+                onPress={() => {
+                  hapticSelect();
+                  setFlashOn((value) => !value);
+                }}
                 style={({ pressed }) => [styles.menuRow, pressed && styles.pressed]}>
                 <Text style={[styles.menuLabel, flashOn && styles.menuLabelOn]}>
                   Flash {flashOn ? 'On' : 'Off'}
                 </Text>
               </Pressable>
               <Pressable
-                onPress={() => setTimerOn((value) => !value)}
+                onPress={() => {
+                  hapticSelect();
+                  setTimerOn((value) => !value);
+                }}
                 style={({ pressed }) => [styles.menuRow, pressed && styles.pressed]}>
                 <Text style={[styles.menuLabel, timerOn && styles.menuLabelOn]}>
                   Timer {timerOn ? '3s' : 'Off'}
@@ -408,7 +437,13 @@ function EvStrip({ value, onChange }: { value: number; onChange: (value: number)
         const major = Number.isInteger(stop);
         const active = Math.abs(value - stop) < 0.26;
         return (
-          <Pressable key={stop} onPress={() => onChange(stop)} style={styles.evTickHit}>
+          <Pressable
+            key={stop}
+            onPress={() => {
+              if (stop !== value) hapticTick();
+              onChange(stop);
+            }}
+            style={styles.evTickHit}>
             <View style={[styles.evTick, major && styles.evTickMajor, active && styles.evTickOn]} />
           </Pressable>
         );

@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CameraChrome, ChromeFonts, LOOKS, lookById, type LookId } from '@/features/camera/chrome';
 import { CheckIcon } from '@/features/camera/chrome-icons';
 import { GlassPanel } from '@/features/camera/glass-panel';
+import { hapticSelect, hapticSuccess } from '@/features/camera/haptics';
 import { LookArtwork } from '@/features/camera/look-artwork';
 
 type LookPickerProps = {
@@ -27,7 +28,10 @@ export function LookPicker({ selectedId, onSelect, onConfirm }: LookPickerProps)
               accessibilityLabel={`${look.name} look`}
               accessibilityState={{ selected: selectedLook }}
               key={look.id}
-              onPress={() => onSelect(look.id)}
+              onPress={() => {
+                hapticSelect();
+                onSelect(look.id);
+              }}
               style={({ pressed }) => [styles.lookItem, pressed && styles.pressed]}
               testID={`look-${look.id}`}>
               <LookArtwork look={look} selected={selectedLook} size={56} />
@@ -46,7 +50,10 @@ export function LookPicker({ selectedId, onSelect, onConfirm }: LookPickerProps)
 
       <Pressable
         accessibilityLabel="Confirm look"
-        onPress={onConfirm}
+        onPress={() => {
+          hapticSuccess();
+          onConfirm();
+        }}
         style={({ pressed }) => [styles.confirm, pressed && styles.confirmPressed]}
         testID="look-confirm">
         <CheckIcon color={CameraChrome.ink} size={26} />

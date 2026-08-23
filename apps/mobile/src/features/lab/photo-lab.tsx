@@ -34,6 +34,7 @@ import {
   ThermometerIcon,
 } from '@/features/camera/chrome-icons';
 import { GlassPanel } from '@/features/camera/glass-panel';
+import { hapticLight, hapticSelect, hapticSuccess } from '@/features/camera/haptics';
 import { LookArtwork } from '@/features/camera/look-artwork';
 import { ViewfinderMock } from '@/features/camera/viewfinder-mock';
 import { AnalogDial, VerticalDial } from '@/features/lab/analog-dial';
@@ -76,12 +77,22 @@ export function PhotoLab({ initialLook = 'natural' }: PhotoLabProps) {
   const bottomPad = Math.max(insets.bottom, 14);
   const previewOverlay = tab === 'frame' ? overlay : 'off';
 
-  function close() {
+  function leave() {
     if (router.canGoBack()) {
       router.back();
       return;
     }
     router.replace('/');
+  }
+
+  function close() {
+    hapticLight();
+    leave();
+  }
+
+  function confirm() {
+    hapticSuccess();
+    leave();
   }
 
   function setFilmValue(id: FilmControlId, amount: number) {
@@ -119,8 +130,15 @@ export function PhotoLab({ initialLook = 'natural' }: PhotoLabProps) {
       </Pressable>
       {!wide ? (
         <GlassPanel style={styles.toolPill}>
-          {contextTools(tab, aspectId, overlay, fitOn, setAspectId, setOverlay, setFitOn, () =>
-            setPresetOpen((value) => !value),
+          {contextTools(
+            tab,
+            aspectId,
+            overlay,
+            fitOn,
+            setAspectId,
+            setOverlay,
+            setFitOn,
+            () => setPresetOpen((value) => !value),
           )}
         </GlassPanel>
       ) : (
@@ -128,7 +146,7 @@ export function PhotoLab({ initialLook = 'natural' }: PhotoLabProps) {
       )}
       <Pressable
         accessibilityLabel="Confirm edits"
-        onPress={close}
+        onPress={confirm}
         style={({ pressed }) => [styles.confirm, pressed && styles.pressed]}
         testID="lab-confirm">
         <CheckIcon color={CameraChrome.ink} size={22} />
@@ -367,7 +385,11 @@ function LabTabDial({ tab, onChange }: { tab: LabTab; onChange: (id: LabTab) => 
     <View style={styles.tabRow}>
       <Pressable
         disabled={!prev}
-        onPress={() => prev && onChange(prev.id)}
+        onPress={() => {
+          if (!prev) return;
+          hapticSelect();
+          onChange(prev.id);
+        }}
         style={styles.tabSide}
         testID={prev ? `lab-tab-${prev.id}` : undefined}>
         <Text style={styles.tabLabel}>{prev?.label ?? ' '}</Text>
@@ -377,7 +399,11 @@ function LabTabDial({ tab, onChange }: { tab: LabTab; onChange: (id: LabTab) => 
       </Text>
       <Pressable
         disabled={!next}
-        onPress={() => next && onChange(next.id)}
+        onPress={() => {
+          if (!next) return;
+          hapticSelect();
+          onChange(next.id);
+        }}
         style={styles.tabSide}
         testID={next ? `lab-tab-${next.id}` : undefined}>
         <Text style={styles.tabLabel}>{next?.label ?? ' '}</Text>
@@ -395,7 +421,10 @@ function LookRow({ lookId, onSelect }: { lookId: LookId; onSelect: (id: LookId) 
           <Pressable
             accessibilityLabel={`${item.name} look`}
             key={item.id}
-            onPress={() => onSelect(item.id)}
+            onPress={() => {
+              hapticSelect();
+              onSelect(item.id);
+            }}
             style={styles.lookItem}
             testID={`lab-look-${item.id}`}>
             <LookArtwork look={item} selected={selected} size={58} />
@@ -435,7 +464,13 @@ function FilmRow({
 
 function PresetButton({ onPress }: { onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} style={styles.presetButton} testID="lab-preset">
+    <Pressable
+      onPress={() => {
+        hapticSelect();
+        onPress();
+      }}
+      style={styles.presetButton}
+      testID="lab-preset">
       <SunIcon size={12} />
       <Text style={styles.presetText}>PRESET</Text>
       <Text style={styles.toolCaption}>∨</Text>
@@ -455,7 +490,10 @@ function PresetList({
       {WB_PRESETS.map((preset) => (
         <Pressable
           key={preset.id}
-          onPress={() => onPick(preset.id)}
+          onPress={() => {
+            hapticSelect();
+            onPick(preset.id);
+          }}
           style={styles.presetRow}>
           <Text style={[styles.presetLabel, selected === preset.id && styles.presetOn]}>{preset.label}</Text>
         </Pressable>
@@ -480,15 +518,26 @@ function contextTools(
         <View style={styles.toolRow}>
           <Pressable
             accessibilityLabel={`Aspect ${ASPECTS.find((item) => item.id === aspectId)?.label}`}
-            onPress={() => onAspect(nextAspect(aspectId))}>
+            onPress={() => {
+              hapticSelect();
+              onAspect(nextAspect(aspectId));
+            }}>
             <AspectRatioIcon size={18} />
           </Pressable>
           <Pressable
             accessibilityLabel={`Overlay ${overlay}`}
-            onPress={() => onOverlay(nextOverlay(overlay))}>
+            onPress={() => {
+              hapticSelect();
+              onOverlay(nextOverlay(overlay));
+            }}>
             <GridCellsIcon size={16} />
           </Pressable>
-          <Pressable accessibilityLabel={fitOn ? 'Fit on' : 'Fit off'} onPress={() => onFit(!fitOn)}>
+          <Pressable
+            accessibilityLabel={fitOn ? 'Fit on' : 'Fit off'}
+            onPress={() => {
+              hapticSelect();
+              onFit(!fitOn);
+            }}>
             <FitIcon size={16} />
           </Pressable>
         </View>

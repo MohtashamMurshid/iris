@@ -2,6 +2,7 @@ import { type ReactNode, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { CameraChrome, ChromeFonts } from '@/features/camera/chrome';
+import { hapticTick } from '@/features/camera/haptics';
 
 type AnalogDialProps = {
   value: number;
@@ -37,7 +38,9 @@ export function AnalogDial({
     const t = Math.min(1, Math.max(0, x / width));
     const raw = min + t * span;
     const snapped = Math.round(raw / step) * step;
-    onChange(Number(Math.min(max, Math.max(min, snapped)).toFixed(2)));
+    const next = Number(Math.min(max, Math.max(min, snapped)).toFixed(2));
+    if (next !== value) hapticTick();
+    onChange(next);
   }
 
   const shiftTicks = ((value - min) / span - 0.5) * -18;
@@ -108,7 +111,9 @@ export function VerticalDial({
     const t = 1 - Math.min(1, Math.max(0, y / height));
     const raw = min + t * span;
     const snapped = Math.round(raw / step) * step;
-    onChange(Number(Math.min(max, Math.max(min, snapped)).toFixed(2)));
+    const next = Number(Math.min(max, Math.max(min, snapped)).toFixed(2));
+    if (next !== value) hapticTick();
+    onChange(next);
   }
 
   const shift = ((value - min) / span - 0.5) * 20;
