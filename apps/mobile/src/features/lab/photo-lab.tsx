@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -10,56 +10,53 @@ import {
   FILM_CONTROLS,
   LAB_TABS,
   LOOKS,
-  OUTPUT_RESOLUTIONS,
   WB_PRESETS,
-  lookById,
   type AspectId,
   type FilmControlId,
   type LabTab,
   type LookId,
-  type OutputResolution,
   type WbPreset,
 } from '@/features/camera/chrome';
 import { CheckIcon } from '@/features/camera/chrome-icons';
 import { GlassPanel } from '@/features/camera/glass-panel';
 import { LookArtwork } from '@/features/camera/look-artwork';
 import { ViewfinderMock } from '@/features/camera/viewfinder-mock';
-import { ChipRow, ToggleChip } from '@/features/lab/chip-row';
-import { HistogramMock } from '@/features/lab/histogram-mock';
-import { Scrubber } from '@/features/lab/scrubber';
+import { AnalogDial, VerticalDial } from '@/features/lab/analog-dial';
+import { RgbHistogram, ToneCurve } from '@/features/lab/lab-graphs';
 
 type PhotoLabProps = {
   initialLook?: LookId;
 };
 
-const INITIAL_FILM: Record<FilmControlId, { on: boolean; amount: number }> = {
-  grain: { on: true, amount: 0.35 },
-  halation: { on: true, amount: 0.2 },
-  mtf: { on: true, amount: 0.45 },
-  vignette: { on: false, amount: 0.15 },
+const INITIAL_FILM: Record<FilmControlId, number> = {
+  grain: 0.4,
+  halation: 1,
+  bloom: 5,
+  mtf: 2,
+  haze: 0.5,
+  vignette: 0.2,
 };
 
 export function PhotoLab({ initialLook = 'natural' }: PhotoLabProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const wide = width >= 740;
   const [tab, setTab] = useState<LabTab>('quick');
   const [lookId, setLookId] = useState<LookId>(initialLook);
-  const [hdr, setHdr] = useState(true);
-  const [filmSim, setFilmSim] = useState(true);
   const [exposure, setExposure] = useState(0.3);
+  const [contrast, setContrast] = useState(0.4);
   const [aspectId, setAspectId] = useState<AspectId>('3-2');
   const [level, setLevel] = useState(0);
-  const [resolution, setResolution] = useState<OutputResolution>('4k');
-  const [histogram, setHistogram] = useState(true);
-  const [toneFusion, setToneFusion] = useState(false);
   const [film, setFilm] = useState(INITIAL_FILM);
   const [wb, setWb] = useState<WbPreset>('auto');
   const [kelvin, setKelvin] = useState(5600);
-  const [tint, setTint] = useState(0);
+  const [tint, setTint] = useState(10);
+  const [presetOpen, setPresetOpen] = useState(false);
+  const [preview, setPreview] = useState({ width: 0, height: 0 });
 
-  const look = lookById(lookId);
-  const topPad = Math.max(insets.top, 12);
-  const bottomPad = Math.max(insets.bottom, 16);
+  const topPad = Math.max(insets.top, 10);
+  const bottomPad = Math.max(insets.bottom, 14);
 
   function close() {
     if (router.canGoBack()) {
@@ -69,63 +66,140 @@ export function PhotoLab({ initialLook = 'natural' }: PhotoLabProps) {
     router.replace('/');
   }
 
-  function setFilmAmount(id: FilmControlId, amount: number) {
-    setFilm((current) => ({ ...current, [id]: { ...current[id], amount } }));
+  function setFilmValue(id: FilmControlId, amount: number) {
+    setFilm((current) => ({ ...current, [id]: amount }));
   }
 
-  function toggleFilm(id: FilmControlId) {
-    setFilm((current) => ({ ...current, [id]: { ...current[id], on: !current[id].on } }));
+  const previewNode = (
+    <View
+      onLayout={(event) => {
+        const next = event.nativeEvent.layout;
+        setPreview({ width: next.width, height: next.height });
+      }}
+      style={[styles.preview, tab === 'frame' && styles.previewFramed]}>
+      {preview.width > 8 && preview.height > 8 ? (
+        <ViewfinderMock
+          height={preview.height}
+          lookId={lookId}
+          overlay={tab === 'frame' ? 'thirds' : 'off'}
+          width={preview.width}
+        />
+      ) : null}
+    </View>
+  );
+
+  const tabs = (
+    <View style={styles.tabRow}>
+      {LAB_TABS.map((item) => {
+        const selected = item.id === tab;
+        return (
+          <Pressable
+            accessibilityRole="tab"
+            accessibilityState={{ selected }}
+            key={item.id}
+            onPress={() => setTab(item.id)}
+            style={styles.tab}
+            testID={`lab-tab-${item.id}`}>
+            <Text style={[styles.tabLabel, selected && styles.tabLabelOn]}>{item.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+
+  const actions = (
+    <View style={styles.actionBar}>
+      <Pressable
+        accessibilityLabel="Close Photo Lab"
+        onPress={close}
+        style={({ pressed }) => [styles.roundButton, pressed && styles.pressed]}
+        testID="lab-close">
+        <Text style={styles.closeMark}>✕</Text>
+      </Pressable>
+      <GlassPanel style={styles.toolPill}>{contextTools(tab, aspectId, setAspectId, () => setPresetOpen((v) => !v))}</GlassPanel>
+      <Pressable
+        accessibilityLabel="Confirm edits"
+        onPress={close}
+        style={({ pressed }) => [styles.confirm, pressed && styles.pressed]}
+        testID="lab-confirm">
+        <CheckIcon color={CameraChrome.ink} size={22} />
+      </Pressable>
+    </View>
+  );
+
+  if (wide) {
+    return (
+      <View style={[styles.page, { paddingBottom: bottomPad, paddingTop: topPad }]}>
+        <View style={styles.wideRow}>
+          <View style={styles.widePreview}>{previewNode}</View>
+          <View style={styles.sidebar}>
+            {tabs}
+            <ScrollView contentContainerStyle={styles.sidebarBody} showsVerticalScrollIndicator={false}>
+              <Text style={styles.section}>QUICK EDIT</Text>
+              <LookRow lookId={lookId} onSelect={setLookId} />
+              <Text style={styles.section}>EXPOSURE</Text>
+              <AnalogDial
+                accessibilityLabel="Exposure"
+                format={signed}
+                icon="☀"
+                max={3}
+                min={-3}
+                onChange={setExposure}
+                value={exposure}
+              />
+              <Text style={styles.section}>FILM</Text>
+              <FilmRow film={film} onChange={setFilmValue} />
+              <Text style={styles.section}>BALANCE</Text>
+              <AnalogDial
+                accessibilityLabel="Tint"
+                format={signed}
+                icon="💧"
+                max={40}
+                min={-40}
+                onChange={setTint}
+                step={1}
+                value={tint}
+              />
+              <AnalogDial
+                accessibilityLabel="Temperature"
+                format={(value) => `${Math.round(value)}K`}
+                icon="°"
+                max={8000}
+                min={2500}
+                onChange={setKelvin}
+                step={50}
+                value={kelvin}
+              />
+            </ScrollView>
+            {actions}
+          </View>
+        </View>
+      </View>
+    );
   }
 
   return (
-    <View style={styles.page}>
-      <View style={[styles.shell, { paddingBottom: bottomPad, paddingTop: topPad }]}>
-        <View style={styles.topBar}>
-          <Pressable
-            accessibilityLabel="Close Photo Lab"
-            onPress={close}
-            style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
-            testID="lab-close">
-            <Text style={styles.closeMark}>✕</Text>
-          </Pressable>
-
-          <ScrollView
-            contentContainerStyle={styles.tabDial}
-            horizontal
-            showsHorizontalScrollIndicator={false}>
-            {LAB_TABS.map((item) => {
-              const selected = item.id === tab;
-              return (
-                <Pressable
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected }}
-                  key={item.id}
-                  onPress={() => setTab(item.id)}
-                  style={({ pressed }) => [styles.tab, selected && styles.tabOn, pressed && styles.pressed]}
-                  testID={`lab-tab-${item.id}`}>
-                  <Text style={[styles.tabLabel, selected && styles.tabLabelOn]}>{item.label}</Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-
-          <Pressable
-            accessibilityLabel="Confirm edits"
-            onPress={close}
-            style={({ pressed }) => [styles.confirm, pressed && styles.pressed]}
-            testID="lab-confirm">
-            <CheckIcon color={CameraChrome.ink} size={20} />
-          </Pressable>
-        </View>
-
-        <View style={styles.preview}>
-          <ViewfinderMock height={280} lookId={lookId} overlay="off" width={210} />
-        </View>
-
-        <GlassPanel style={styles.pane}>
-          <Text style={styles.paneKicker}>{look.name}</Text>
-          {renderPane()}
-        </GlassPanel>
+    <View style={[styles.page, { paddingBottom: bottomPad, paddingTop: topPad }]}>
+      <View style={styles.phone}>
+        {previewNode}
+        {tabs}
+        <View style={styles.pane}>{renderPane()}</View>
+        {presetOpen && tab === 'balance' ? (
+          <View style={styles.presetList}>
+            {WB_PRESETS.map((preset) => (
+              <Pressable
+                key={preset.id}
+                onPress={() => {
+                  setWb(preset.id);
+                  setPresetOpen(false);
+                }}
+                style={styles.presetRow}>
+                <Text style={[styles.presetLabel, wb === preset.id && styles.presetOn]}>{preset.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+        {actions}
       </View>
     </View>
   );
@@ -135,35 +209,14 @@ export function PhotoLab({ initialLook = 'natural' }: PhotoLabProps) {
       case 'quick':
         return (
           <View style={styles.paneBody}>
-            <ScrollView
-              contentContainerStyle={styles.lookRow}
-              horizontal
-              showsHorizontalScrollIndicator={false}>
-              {LOOKS.map((item) => {
-                const selected = item.id === lookId;
-                return (
-                  <Pressable
-                    accessibilityLabel={`${item.name} look`}
-                    key={item.id}
-                    onPress={() => setLookId(item.id)}
-                    style={styles.lookItem}>
-                    <LookArtwork look={item} selected={selected} size={52} />
-                    <Text style={[styles.lookName, selected && styles.lookNameOn]}>{item.name}</Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-            <View style={styles.toggleRow}>
-              <ToggleChip label="HDR" onPress={() => setHdr((value) => !value)} selected={hdr} />
-              <ToggleChip label="Film" onPress={() => setFilmSim((value) => !value)} selected={filmSim} />
-            </View>
-            <Scrubber
-              format={(value) => `${value > 0 ? '+' : ''}${value.toFixed(1)}`}
-              label="Exposure"
+            <LookRow lookId={lookId} onSelect={setLookId} />
+            <AnalogDial
+              accessibilityLabel="Exposure"
+              format={signed}
+              icon="☀"
               max={3}
               min={-3}
               onChange={setExposure}
-              step={0.1}
               value={exposure}
             />
           </View>
@@ -171,102 +224,68 @@ export function PhotoLab({ initialLook = 'natural' }: PhotoLabProps) {
       case 'frame':
         return (
           <View style={styles.paneBody}>
-            <ChipRow items={ASPECTS} onSelect={setAspectId} selectedId={aspectId} />
-            <Scrubber
-              format={(value) => `${value.toFixed(1)}°`}
-              label="Level"
+            <AnalogDial
+              accessibilityLabel="Level"
+              format={(value) => `${value.toFixed(1)}`}
+              icon="▭"
               max={15}
               min={-15}
               onChange={setLevel}
               step={0.5}
               value={level}
             />
-            <ChipRow items={OUTPUT_RESOLUTIONS} onSelect={setResolution} selectedId={resolution} />
           </View>
         );
       case 'exposure':
         return (
           <View style={styles.paneBody}>
-            {histogram ? <HistogramMock /> : null}
-            <View style={styles.toggleRow}>
-              <ToggleChip
-                label="Histogram"
-                onPress={() => setHistogram((value) => !value)}
-                selected={histogram}
-              />
-              <ToggleChip
-                label="Tone Fusion"
-                onPress={() => setToneFusion((value) => !value)}
-                selected={toneFusion}
-              />
-            </View>
-            <Scrubber
-              format={(value) => `${value > 0 ? '+' : ''}${value.toFixed(1)}`}
-              label="Exposure"
+            <RgbHistogram />
+            <AnalogDial
+              accessibilityLabel="Exposure"
+              format={signed}
+              icon="☀"
               max={3}
               min={-3}
               onChange={setExposure}
-              step={0.1}
               value={exposure}
             />
+            <AnalogDial
+              accessibilityLabel="Contrast"
+              format={signed}
+              icon="◐"
+              max={10}
+              min={-10}
+              onChange={setContrast}
+              step={0.1}
+              value={contrast}
+            />
+            <ToneCurve />
           </View>
         );
       case 'film':
-        return (
-          <ScrollView contentContainerStyle={styles.paneBody} showsVerticalScrollIndicator={false}>
-            {FILM_CONTROLS.map((control) => {
-              const state = film[control.id];
-              return (
-                <View key={control.id} style={styles.filmBlock}>
-                  <View style={styles.filmHeader}>
-                    <View>
-                      <Text style={styles.filmTitle}>{control.label}</Text>
-                      <Text style={styles.filmHint}>{control.hint}</Text>
-                    </View>
-                    <ToggleChip
-                      label={state.on ? 'On' : 'Off'}
-                      onPress={() => toggleFilm(control.id)}
-                      selected={state.on}
-                    />
-                  </View>
-                  <Scrubber
-                    disabled={!state.on}
-                    format={(value) => `${Math.round(value * 100)}%`}
-                    label="Strength"
-                    max={1}
-                    min={0}
-                    onChange={(amount) => setFilmAmount(control.id, amount)}
-                    step={0.05}
-                    value={state.amount}
-                  />
-                </View>
-              );
-            })}
-          </ScrollView>
-        );
+        return <FilmRow film={film} onChange={setFilmValue} />;
       case 'balance':
         return (
           <View style={styles.paneBody}>
-            <ChipRow items={WB_PRESETS} onSelect={setWb} selectedId={wb} />
-            <Scrubber
-              disabled={wb === 'auto'}
+            <AnalogDial
+              accessibilityLabel="Tint"
+              format={(value) => signed(value, 2)}
+              icon="💧"
+              max={40}
+              min={-40}
+              onChange={setTint}
+              step={1}
+              value={tint}
+            />
+            <AnalogDial
+              accessibilityLabel="Temperature"
               format={(value) => `${Math.round(value)}K`}
-              label="Kelvin"
+              icon="°"
               max={8000}
               min={2500}
               onChange={setKelvin}
               step={50}
               value={kelvin}
-            />
-            <Scrubber
-              disabled={wb === 'auto'}
-              format={(value) => `${value > 0 ? '+' : ''}${value.toFixed(0)}`}
-              label="Tint"
-              max={20}
-              min={-20}
-              onChange={setTint}
-              step={1}
-              value={tint}
             />
           </View>
         );
@@ -278,134 +297,302 @@ export function PhotoLab({ initialLook = 'natural' }: PhotoLabProps) {
   }
 }
 
+function LookRow({ lookId, onSelect }: { lookId: LookId; onSelect: (id: LookId) => void }) {
+  return (
+    <ScrollView contentContainerStyle={styles.lookRow} horizontal showsHorizontalScrollIndicator={false}>
+      {LOOKS.map((item) => {
+        const selected = item.id === lookId;
+        return (
+          <Pressable
+            accessibilityLabel={`${item.name} look`}
+            key={item.id}
+            onPress={() => onSelect(item.id)}
+            style={styles.lookItem}
+            testID={`lab-look-${item.id}`}>
+            <LookArtwork look={item} selected={selected} size={72} />
+            <Text style={[styles.lookName, selected && styles.lookNameOn]}>{item.name}</Text>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
+function FilmRow({
+  film,
+  onChange,
+}: {
+  film: Record<FilmControlId, number>;
+  onChange: (id: FilmControlId, value: number) => void;
+}) {
+  return (
+    <View style={styles.filmRow}>
+      {FILM_CONTROLS.map((control) => (
+        <VerticalDial
+          format={signed}
+          glyph={control.glyph}
+          key={control.id}
+          label={control.label}
+          max={control.max}
+          min={control.min}
+          onChange={(value) => onChange(control.id, value)}
+          step={control.step}
+          value={film[control.id]}
+        />
+      ))}
+    </View>
+  );
+}
+
+function contextTools(
+  tab: LabTab,
+  aspectId: AspectId,
+  onAspect: (id: AspectId) => void,
+  onPreset: () => void,
+) {
+  switch (tab) {
+    case 'frame':
+      return (
+        <View style={styles.toolRow}>
+          <Text style={styles.toolGlyph}>▯</Text>
+          <Text style={styles.toolGlyph}>⊞</Text>
+          <Text style={styles.toolGlyph}>⛶</Text>
+          <Text style={styles.toolCaption}>{ASPECTS.find((item) => item.id === aspectId)?.label}</Text>
+          <Pressable onPress={() => onAspect(nextAspect(aspectId))}>
+            <Text style={styles.toolCaption}>cycle</Text>
+          </Pressable>
+        </View>
+      );
+    case 'quick':
+      return (
+        <View style={styles.toolRow}>
+          <Text style={styles.toolGlyph}>✦</Text>
+          <Text style={styles.toolGlyph}>≡</Text>
+        </View>
+      );
+    case 'exposure':
+      return (
+        <View style={styles.toolRow}>
+          <Text style={styles.toolGlyph}>⋮</Text>
+          <Text style={styles.toolGlyph}>|||</Text>
+          <Text style={styles.toolGlyph}>◐</Text>
+        </View>
+      );
+    case 'film':
+      return (
+        <View style={styles.toolRow}>
+          {FILM_CONTROLS.map((control) => (
+            <Text key={control.id} style={styles.toolGlyph}>
+              {control.glyph}
+            </Text>
+          ))}
+        </View>
+      );
+    case 'balance':
+      return (
+        <Pressable onPress={onPreset} style={styles.presetButton} testID="lab-preset">
+          <Text style={styles.toolGlyph}>☀</Text>
+          <Text style={styles.presetText}>PRESET</Text>
+          <Text style={styles.toolGlyph}>∨</Text>
+        </Pressable>
+      );
+    default: {
+      const _never: never = tab;
+      return _never;
+    }
+  }
+}
+
+function nextAspect(current: AspectId): AspectId {
+  const index = ASPECTS.findIndex((item) => item.id === current);
+  return ASPECTS[(index + 1) % ASPECTS.length]?.id ?? '3-2';
+}
+
+function signed(value: number, digits = 1): string {
+  const body = value.toFixed(digits);
+  return value > 0 ? `+${body}` : body;
+}
+
 const styles = StyleSheet.create({
   page: {
-    alignItems: 'center',
     backgroundColor: CameraChrome.ink,
     flex: 1,
   },
-  shell: {
+  phone: {
+    alignSelf: 'center',
     flex: 1,
     maxWidth: 430,
-    paddingHorizontal: 12,
     width: '100%',
   },
-  topBar: {
-    alignItems: 'center',
+  preview: {
+    backgroundColor: '#111',
+    flex: 1,
+    minHeight: 240,
+    overflow: 'hidden',
+  },
+  previewFramed: {
+    borderColor: 'rgba(255,255,255,0.7)',
+    borderWidth: 1,
+    marginHorizontal: 10,
+    marginTop: 8,
+  },
+  tabRow: {
     flexDirection: 'row',
-    gap: 8,
-  },
-  iconButton: {
-    alignItems: 'center',
-    height: 40,
-    justifyContent: 'center',
-    width: 40,
-  },
-  closeMark: {
-    color: CameraChrome.white,
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  tabDial: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 6,
-    paddingVertical: 4,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   tab: {
-    borderCurve: 'continuous',
-    borderRadius: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  tabOn: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 4,
+    paddingVertical: 4,
   },
   tabLabel: {
     color: CameraChrome.muted,
     fontFamily: ChromeFonts.sans,
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.8,
   },
   tabLabelOn: {
     color: CameraChrome.white,
+  },
+  pane: {
+    minHeight: 210,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  paneBody: {
+    gap: 14,
+  },
+  lookRow: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingVertical: 4,
+  },
+  lookItem: {
+    alignItems: 'center',
+    gap: 6,
+    width: 78,
+  },
+  lookName: {
+    color: CameraChrome.muted,
+    fontFamily: ChromeFonts.sans,
+    fontSize: 12,
+  },
+  lookNameOn: {
+    color: CameraChrome.white,
+  },
+  filmRow: {
+    flexDirection: 'row',
+    gap: 4,
+    paddingTop: 4,
+  },
+  actionBar: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  roundButton: {
+    alignItems: 'center',
+    backgroundColor: '#2A2A2C',
+    borderRadius: 18,
+    height: 48,
+    justifyContent: 'center',
+    width: 48,
+  },
+  closeMark: {
+    color: CameraChrome.white,
+    fontSize: 18,
+    fontWeight: '500',
   },
   confirm: {
     alignItems: 'center',
     backgroundColor: CameraChrome.amber,
     borderRadius: 18,
-    height: 40,
+    height: 48,
     justifyContent: 'center',
-    width: 40,
+    width: 48,
   },
-  preview: {
+  toolPill: {
     alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-    minHeight: 220,
-  },
-  pane: {
     borderCurve: 'continuous',
-    borderRadius: 32,
-    minHeight: 250,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    borderRadius: 22,
+    flex: 1,
+    height: 48,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
   },
-  paneKicker: {
+  toolRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 14,
+    justifyContent: 'center',
+  },
+  toolGlyph: {
+    color: CameraChrome.white,
+    fontSize: 14,
+  },
+  toolCaption: {
     color: CameraChrome.muted,
     fontFamily: ChromeFonts.sans,
     fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 1.1,
-    marginBottom: 12,
-    textTransform: 'uppercase',
   },
-  paneBody: {
-    gap: 16,
-  },
-  lookRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  lookItem: {
+  presetButton: {
     alignItems: 'center',
-    gap: 6,
-    width: 60,
-  },
-  lookName: {
-    color: CameraChrome.muted,
-    fontFamily: ChromeFonts.sans,
-    fontSize: 11,
-  },
-  lookNameOn: {
-    color: CameraChrome.white,
-  },
-  toggleRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
   },
-  filmBlock: {
-    gap: 10,
-  },
-  filmHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  filmTitle: {
+  presetText: {
     color: CameraChrome.white,
     fontFamily: ChromeFonts.sans,
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 1,
   },
-  filmHint: {
+  presetList: {
+    paddingHorizontal: 18,
+  },
+  presetRow: {
+    minHeight: 36,
+    justifyContent: 'center',
+  },
+  presetLabel: {
     color: CameraChrome.muted,
     fontFamily: ChromeFonts.sans,
+    fontSize: 15,
+  },
+  presetOn: {
+    color: CameraChrome.amber,
+  },
+  wideRow: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  widePreview: {
+    flex: 1,
+  },
+  sidebar: {
+    backgroundColor: CameraChrome.ink,
+    borderLeftColor: CameraChrome.glassBorder,
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 16,
+    width: 360,
+  },
+  sidebarBody: {
+    gap: 16,
+    paddingBottom: 16,
+  },
+  section: {
+    color: CameraChrome.white,
+    fontFamily: ChromeFonts.sans,
     fontSize: 12,
-    marginTop: 2,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    marginTop: 8,
   },
   pressed: {
-    opacity: 0.72,
+    opacity: 0.7,
   },
 });

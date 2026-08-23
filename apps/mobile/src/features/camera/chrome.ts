@@ -200,11 +200,11 @@ export function exposureLabel(mode: ExposureMode): string {
 export type LabTab = 'frame' | 'quick' | 'exposure' | 'film' | 'balance';
 
 export const LAB_TABS: { id: LabTab; label: string }[] = [
-  { id: 'frame', label: 'Frame' },
-  { id: 'quick', label: 'Quick Edit' },
-  { id: 'exposure', label: 'Exposure' },
-  { id: 'film', label: 'Film' },
-  { id: 'balance', label: 'Balance' },
+  { id: 'frame', label: 'FRAME' },
+  { id: 'quick', label: 'QUICK EDIT' },
+  { id: 'exposure', label: 'EXPOSURE' },
+  { id: 'film', label: 'FILM' },
+  { id: 'balance', label: 'BALANCE' },
 ];
 
 export const OUTPUT_RESOLUTIONS = [
@@ -226,10 +226,12 @@ export const WB_PRESETS = [
 export type WbPreset = (typeof WB_PRESETS)[number]['id'];
 
 export const FILM_CONTROLS = [
-  { id: 'grain', label: 'Grain', hint: 'Texture in midtones' },
-  { id: 'halation', label: 'Halation', hint: 'Glow around bright edges' },
-  { id: 'mtf', label: 'MTF', hint: 'Micro contrast' },
-  { id: 'vignette', label: 'Vignette', hint: 'Falloff at the frame' },
+  { id: 'grain', label: 'Grain', glyph: '▦', min: -2, max: 2, step: 0.1 },
+  { id: 'halation', label: 'Halation', glyph: 'H', min: 0, max: 2, step: 0.1 },
+  { id: 'bloom', label: 'Bloom', glyph: '◌', min: 0, max: 8, step: 0.1 },
+  { id: 'mtf', label: 'MTF', glyph: '∿', min: 0, max: 4, step: 0.1 },
+  { id: 'haze', label: 'Haze', glyph: '~', min: 0, max: 2, step: 0.1 },
+  { id: 'vignette', label: 'Vignette', glyph: '◎', min: 0, max: 1, step: 0.05 },
 ] as const;
 
 export type FilmControlId = (typeof FILM_CONTROLS)[number]['id'];
