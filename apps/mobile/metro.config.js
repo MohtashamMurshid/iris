@@ -1,3 +1,5 @@
+// Expo Router 57's web stack imports `./toolbar` as a file. Metro needs the
+// directory index so `expo start --web` can render the camera shell.
 const { getDefaultConfig } = require('expo/metro-config');
 const path = require('path');
 

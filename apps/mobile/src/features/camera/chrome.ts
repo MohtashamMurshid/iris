@@ -197,6 +197,43 @@ export function exposureLabel(mode: ExposureMode): string {
   }
 }
 
+export type LabTab = 'frame' | 'quick' | 'exposure' | 'film' | 'balance';
+
+export const LAB_TABS: { id: LabTab; label: string }[] = [
+  { id: 'frame', label: 'Frame' },
+  { id: 'quick', label: 'Quick Edit' },
+  { id: 'exposure', label: 'Exposure' },
+  { id: 'film', label: 'Film' },
+  { id: 'balance', label: 'Balance' },
+];
+
+export const OUTPUT_RESOLUTIONS = [
+  { id: '4k', label: '4K', caption: 'Default' },
+  { id: '12mp', label: '12MP', caption: 'Share' },
+  { id: 'full', label: 'Full', caption: 'Sensor' },
+] as const;
+
+export type OutputResolution = (typeof OUTPUT_RESOLUTIONS)[number]['id'];
+
+export const WB_PRESETS = [
+  { id: 'auto', label: 'Auto' },
+  { id: 'daylight', label: 'Daylight' },
+  { id: 'cloudy', label: 'Cloudy' },
+  { id: 'tungsten', label: 'Tungsten' },
+  { id: 'fluorescent', label: 'Fluorescent' },
+] as const;
+
+export type WbPreset = (typeof WB_PRESETS)[number]['id'];
+
+export const FILM_CONTROLS = [
+  { id: 'grain', label: 'Grain', hint: 'Texture in midtones' },
+  { id: 'halation', label: 'Halation', hint: 'Glow around bright edges' },
+  { id: 'mtf', label: 'MTF', hint: 'Micro contrast' },
+  { id: 'vignette', label: 'Vignette', hint: 'Falloff at the frame' },
+] as const;
+
+export type FilmControlId = (typeof FILM_CONTROLS)[number]['id'];
+
 export function fitFrame(
   widthOverHeight: number,
   maxWidth: number,

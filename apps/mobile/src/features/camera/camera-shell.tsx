@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,6 +9,7 @@ import {
   ChromeFonts,
   EXPOSURE_MODES,
   OVERLAYS,
+  WB_PRESETS,
   ZOOM_STOPS,
   aspectById,
   exposureLabel,
@@ -17,6 +19,7 @@ import {
   type ExposureMode,
   type LookId,
   type OverlayId,
+  type WbPreset,
   type ZoomStop,
 } from '@/features/camera/chrome';
 import {
@@ -36,6 +39,7 @@ import { ViewfinderMock } from '@/features/camera/viewfinder-mock';
 type OpenMenu = 'exposure' | 'aspect' | 'overlay' | 'more' | null;
 
 export function CameraShell() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const [exposureMode, setExposureMode] = useState<ExposureMode>('auto');
   const [rawEnabled, setRawEnabled] = useState(true);
@@ -49,6 +53,8 @@ export function CameraShell() {
   const [openMenu, setOpenMenu] = useState<OpenMenu>(null);
   const [flashOn, setFlashOn] = useState(false);
   const [timerOn, setTimerOn] = useState(false);
+  const [wb, setWb] = useState<WbPreset>('auto');
+  const [evComp, setEvComp] = useState(0.3);
   const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
 
   const look = lookById(lookId);
@@ -75,6 +81,18 @@ export function CameraShell() {
   function chooseExposure(mode: ExposureMode) {
     setExposureMode(mode);
     setOpenMenu(null);
+  }
+
+  function openLab() {
+    setOpenMenu(null);
+    setLookPickerOpen(false);
+    router.push({ pathname: '/lab', params: { look: lookId } });
+  }
+
+  function cycleWb() {
+    const index = WB_PRESETS.findIndex((preset) => preset.id === wb);
+    const next = WB_PRESETS[(index + 1) % WB_PRESETS.length];
+    if (next) setWb(next.id);
   }
 
   const topPad = Math.max(insets.top, 10);
@@ -121,12 +139,16 @@ export function CameraShell() {
           }}
           style={styles.stage}>
           {frame.width > 0 && (
-            <ViewfinderMock
-              height={frame.height}
-              lookId={lookId}
-              overlay={overlay}
-              width={frame.width}
-            />
+            <View style={{ height: frame.height, width: frame.width }}>
+              <ViewfinderMock
+                height={frame.height}
+                lookId={lookId}
+                overlay={overlay}
+                width={frame.width}
+              />
+              {!afOn && <FocusScale />}
+              <EvStrip onChange={setEvComp} value={evComp} />
+            </View>
           )}
         </View>
 
@@ -208,7 +230,8 @@ export function CameraShell() {
           <Pressable
             accessibilityLabel="More controls"
             onPress={() => toggleMenu('more')}
-            style={({ pressed }) => [pressed && styles.pressed]}>
+            style={({ pressed }) => [pressed && styles.pressed]}
+            testID="more-button">
             <GlassPanel style={[styles.circleButton, openMenu === 'more' && styles.circleButtonOn]}>
               <EllipsisIcon color={openMenu === 'more' ? CameraChrome.ink : CameraChrome.white} />
             </GlassPanel>
@@ -216,12 +239,16 @@ export function CameraShell() {
         </View>
 
         <View style={styles.bottomBar}>
-          <View style={styles.thumbWell}>
-            <View accessibilityLabel="Recent photos" style={styles.recentsThumb}>
+          <Pressable
+            accessibilityLabel="Open Photo Lab"
+            onPress={openLab}
+            style={({ pressed }) => [styles.thumbWell, pressed && styles.pressed]}
+            testID="recents-thumb">
+            <View style={styles.recentsThumb}>
               <View style={styles.recentsSky} />
               <View style={styles.recentsGround} />
             </View>
-          </View>
+          </Pressable>
 
           <Pressable
             accessibilityLabel="Shutter"
@@ -316,7 +343,13 @@ export function CameraShell() {
           )}
 
           {openMenu === 'more' && (
-            <GlassPanel style={[styles.menu, styles.moreMenu]}>
+            <GlassPanel style={[styles.menu, styles.moreMenu]} testID="more-menu">
+              <Pressable
+                onPress={openLab}
+                style={({ pressed }) => [styles.menuRow, pressed && styles.pressed]}
+                testID="more-photo-lab">
+                <Text style={styles.menuLabel}>Photo Lab</Text>
+              </Pressable>
               <Pressable
                 onPress={() => setFlashOn((value) => !value)}
                 style={({ pressed }) => [styles.menuRow, pressed && styles.pressed]}>
@@ -331,7 +364,17 @@ export function CameraShell() {
                   Timer {timerOn ? '3s' : 'Off'}
                 </Text>
               </Pressable>
-              <Text style={styles.menuCaption}>White Balance Auto</Text>
+              <Pressable
+                onPress={cycleWb}
+                style={({ pressed }) => [styles.menuRow, pressed && styles.pressed]}>
+                <Text style={[styles.menuLabel, wb !== 'auto' && styles.menuLabelOn]}>
+                  White Balance
+                </Text>
+                <Text style={styles.menuCaption}>
+                  {WB_PRESETS.find((preset) => preset.id === wb)?.label ?? 'Auto'}
+                </Text>
+              </Pressable>
+              <Text style={styles.menuHint}>Classic chrome stays available later.</Text>
             </GlassPanel>
           )}
         </View>
@@ -349,6 +392,33 @@ export function CameraShell() {
           </View>
         </View>
       )}
+    </View>
+  );
+}
+
+function EvStrip({ value, onChange }: { value: number; onChange: (value: number) => void }) {
+  const stops = [-2, -1, 0, 1, 2];
+
+  return (
+    <View accessibilityLabel={`Exposure compensation ${value}`} style={styles.evStrip}>
+      <Text style={styles.evValue}>{`${value > 0 ? '+' : ''}${value.toFixed(1)}`}</Text>
+      {stops.map((stop) => (
+        <Pressable key={stop} onPress={() => onChange(stop === 0 ? 0.3 : stop)} style={styles.evTickHit}>
+          <View style={[styles.evTick, Math.abs(value - stop) < 0.4 && styles.evTickOn]} />
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
+function FocusScale() {
+  return (
+    <View accessibilityLabel="Manual focus scale" style={styles.focusScale}>
+      <Text style={styles.focusMark}>∞</Text>
+      {[0, 1, 2, 3, 4, 5].map((tick) => (
+        <View key={tick} style={[styles.focusTick, tick === 2 && styles.focusTickOn]} />
+      ))}
+      <Text style={styles.focusMark}>N</Text>
     </View>
   );
 }
@@ -652,6 +722,63 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginLeft: 'auto',
     paddingVertical: 8,
+  },
+  menuHint: {
+    color: CameraChrome.muted,
+    fontFamily: ChromeFonts.sans,
+    fontSize: 12,
+    paddingBottom: 6,
+    paddingTop: 4,
+  },
+  evStrip: {
+    alignItems: 'center',
+    gap: 6,
+    position: 'absolute',
+    right: 10,
+    top: '18%',
+  },
+  evValue: {
+    color: CameraChrome.amber,
+    fontFamily: ChromeFonts.mono,
+    fontSize: 11,
+    marginBottom: 4,
+  },
+  evTickHit: {
+    alignItems: 'center',
+    height: 16,
+    justifyContent: 'center',
+    width: 22,
+  },
+  evTick: {
+    backgroundColor: 'rgba(245,196,0,0.35)',
+    borderRadius: 1,
+    height: 2,
+    width: 12,
+  },
+  evTickOn: {
+    backgroundColor: CameraChrome.amber,
+    width: 18,
+  },
+  focusScale: {
+    alignItems: 'center',
+    gap: 7,
+    left: 10,
+    position: 'absolute',
+    top: '20%',
+  },
+  focusMark: {
+    color: CameraChrome.white,
+    fontFamily: ChromeFonts.mono,
+    fontSize: 11,
+  },
+  focusTick: {
+    backgroundColor: 'rgba(255,255,255,0.35)',
+    height: 1.5,
+    width: 10,
+  },
+  focusTickOn: {
+    backgroundColor: CameraChrome.white,
+    width: 16,
   },
   lookSheetWrap: {
     bottom: 0,
