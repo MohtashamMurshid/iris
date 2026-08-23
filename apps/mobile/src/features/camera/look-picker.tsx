@@ -28,8 +28,9 @@ export function LookPicker({ selectedId, onSelect, onConfirm }: LookPickerProps)
               accessibilityState={{ selected: selectedLook }}
               key={look.id}
               onPress={() => onSelect(look.id)}
-              style={({ pressed }) => [styles.lookItem, pressed && styles.pressed]}>
-              <LookArtwork look={look} selected={selectedLook} size={68} />
+              style={({ pressed }) => [styles.lookItem, pressed && styles.pressed]}
+              testID={`look-${look.id}`}>
+              <LookArtwork look={look} selected={selectedLook} size={56} />
               <Text numberOfLines={1} style={[styles.lookName, selectedLook && styles.lookNameSelected]}>
                 {look.name}
               </Text>
@@ -46,7 +47,8 @@ export function LookPicker({ selectedId, onSelect, onConfirm }: LookPickerProps)
       <Pressable
         accessibilityLabel="Confirm look"
         onPress={onConfirm}
-        style={({ pressed }) => [styles.confirm, pressed && styles.confirmPressed]}>
+        style={({ pressed }) => [styles.confirm, pressed && styles.confirmPressed]}
+        testID="look-confirm">
         <CheckIcon color={CameraChrome.ink} size={26} />
       </Pressable>
     </GlassPanel>
@@ -63,13 +65,13 @@ const styles = StyleSheet.create({
     paddingTop: 22,
   },
   carousel: {
-    gap: 16,
-    paddingHorizontal: 22,
+    gap: 8,
+    paddingHorizontal: 16,
   },
   lookItem: {
     alignItems: 'center',
-    gap: 8,
-    width: 76,
+    gap: 7,
+    width: 64,
   },
   lookName: {
     color: CameraChrome.muted,

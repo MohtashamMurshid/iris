@@ -27,7 +27,7 @@ export function ViewfinderMock({ lookId, overlay, width, height }: ViewfinderMoc
       <Gate color={palette.gateFar} scale={0.74} top="29%" />
       <Gate color={palette.gateFar} scale={0.52} top="36%" />
       {palette.veil !== 'transparent' && (
-        <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: palette.veil }]} />
+        <View style={[StyleSheet.absoluteFill, styles.ignorePointer, { backgroundColor: palette.veil }]} />
       )}
       <CompositionOverlay height={height} overlay={overlay} width={width} />
     </View>
@@ -41,8 +41,8 @@ function Gate({ color, scale, top }: { color: string; scale: number; top: `${num
 
   return (
     <View
-      pointerEvents="none"
       style={{
+        pointerEvents: 'none',
         alignItems: 'center',
         alignSelf: 'center',
         height: `${Math.round(28 * scale)}%`,
@@ -74,7 +74,7 @@ function CompositionOverlay({
   const lines = overlayLines(overlay, width, height);
 
   return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+    <View style={[StyleSheet.absoluteFill, styles.ignorePointer]}>
       {lines.vertical.map((left, index) => (
         <View key={`v-${index}`} style={[styles.vLine, { left }]} />
       ))}
@@ -160,5 +160,8 @@ const styles = StyleSheet.create({
     left: 0,
     position: 'absolute',
     right: 0,
+  },
+  ignorePointer: {
+    pointerEvents: 'none',
   },
 });

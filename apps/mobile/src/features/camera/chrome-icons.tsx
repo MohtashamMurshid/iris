@@ -25,20 +25,24 @@ export function AspectRatioIcon({ color = CameraChrome.white, size = 22 }: IconP
   );
 }
 
-export function GridCellsIcon({ color = CameraChrome.white, size = 18 }: IconProps) {
-  const cell = Math.max(3, Math.round((size - 4) / 3));
+export function GridCellsIcon({ color = CameraChrome.white, size = 20 }: IconProps) {
+  const cell = size * 0.22;
   return (
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 2, height: size, width: size }}>
-      {Array.from({ length: 9 }, (_, index) => (
-        <View
-          key={index}
-          style={{
-            backgroundColor: color,
-            borderRadius: 1,
-            height: cell,
-            width: cell,
-          }}
-        />
+    <View style={{ height: size, justifyContent: 'space-between', width: size }}>
+      {[0, 1, 2].map((row) => (
+        <View key={row} style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+          {[0, 1, 2].map((col) => (
+            <View
+              key={col}
+              style={{
+                backgroundColor: color,
+                borderRadius: 1.2,
+                height: cell,
+                width: cell,
+              }}
+            />
+          ))}
+        </View>
       ))}
     </View>
   );
@@ -55,21 +59,16 @@ export function SplitLinesIcon({ color = CameraChrome.white, size = 16 }: IconPr
 
 export function CheckIcon({ color = CameraChrome.ink, size = 22 }: IconProps) {
   return (
-    <View style={{ height: size, width: size }}>
-      <View
-        style={{
-          borderBottomWidth: 3.2,
-          borderColor: color,
-          borderLeftWidth: 3.2,
-          height: size * 0.52,
-          left: size * 0.12,
-          position: 'absolute',
-          top: size * 0.18,
-          transform: [{ rotate: '-45deg' }],
-          width: size * 0.78,
-        }}
-      />
-    </View>
+    <Text
+      style={{
+        color,
+        fontSize: size,
+        fontWeight: '800',
+        lineHeight: size,
+        textAlign: 'center',
+      }}>
+      ✓
+    </Text>
   );
 }
 

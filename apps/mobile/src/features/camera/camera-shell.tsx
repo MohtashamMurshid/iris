@@ -99,7 +99,8 @@ export function CameraShell() {
           <Pressable
             accessibilityLabel="Exposure mode"
             onPress={() => toggleMenu('exposure')}
-            style={({ pressed }) => [pressed && styles.pressed]}>
+            style={({ pressed }) => [pressed && styles.pressed]}
+            testID="exposure-mode">
             {manualChrome ? (
               <GlassPanel style={styles.readoutPill}>
                 <Text style={styles.readoutValue}>377</Text>
@@ -143,7 +144,8 @@ export function CameraShell() {
           <Pressable
             accessibilityLabel={`Aspect ratio ${aspect.label}`}
             onPress={() => toggleMenu('aspect')}
-            style={({ pressed }) => [styles.flexButton, pressed && styles.pressed]}>
+            style={({ pressed }) => [styles.flexButton, pressed && styles.pressed]}
+            testID="aspect-button">
             <GlassPanel style={styles.toolButton}>
               <AspectRatioIcon />
             </GlassPanel>
@@ -152,7 +154,8 @@ export function CameraShell() {
           <Pressable
             accessibilityLabel={`Composition overlay ${overlay}`}
             onPress={() => toggleMenu('overlay')}
-            style={({ pressed }) => [styles.flexButton, pressed && styles.pressed]}>
+            style={({ pressed }) => [styles.flexButton, pressed && styles.pressed]}
+            testID="overlay-button">
             <GlassPanel style={[styles.toolButton, overlay !== 'off' && styles.toolButtonOn]}>
               <GridCellsIcon />
             </GlassPanel>
@@ -235,14 +238,15 @@ export function CameraShell() {
               setOpenMenu(null);
               setLookPickerOpen((value) => !value);
             }}
-            style={({ pressed }) => [styles.thumbWell, pressed && styles.pressed]}>
+            style={({ pressed }) => [styles.thumbWell, pressed && styles.pressed]}
+            testID="look-tile">
             <LookArtwork look={look} selected={lookPickerOpen} size={56} />
           </Pressable>
         </View>
       </View>
 
       {openMenu !== null && (
-        <View pointerEvents="box-none" style={styles.overlayLayer}>
+        <View style={[styles.overlayLayer, styles.passThrough]}>
           <Pressable onPress={closeOverlays} style={StyleSheet.absoluteFill} />
           {openMenu === 'exposure' && (
             <GlassPanel style={[styles.menu, styles.exposureMenu, { top: topPad + 48 }]}>
@@ -254,7 +258,8 @@ export function CameraShell() {
                     accessibilityState={{ selected }}
                     key={mode.id}
                     onPress={() => chooseExposure(mode.id)}
-                    style={({ pressed }) => [styles.menuRow, pressed && styles.pressed]}>
+                    style={({ pressed }) => [styles.menuRow, pressed && styles.pressed]}
+                    testID={`exposure-${mode.id}`}>
                     <View style={styles.menuGlyph}>
                       {selected ? <CheckIcon color={CameraChrome.white} size={16} /> : <ExposureModeGlyph mode={mode.id} />}
                     </View>
@@ -333,7 +338,7 @@ export function CameraShell() {
       )}
 
       {lookPickerOpen && (
-        <View pointerEvents="box-none" style={styles.overlayLayer}>
+        <View style={[styles.overlayLayer, styles.passThrough]}>
           <Pressable onPress={closeOverlays} style={[StyleSheet.absoluteFill, styles.lookDim]} />
           <View style={[styles.lookSheetWrap, { paddingBottom: bottomPad }]}>
             <LookPicker
@@ -591,6 +596,9 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     zIndex: 20,
+  },
+  passThrough: {
+    pointerEvents: 'box-none',
   },
   lookDim: {
     backgroundColor: CameraChrome.dim,
