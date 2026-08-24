@@ -221,6 +221,7 @@ export const initCameraDemo = () => {
   const lookLabel = lookButton?.querySelector<HTMLElement>('b span');
   const lookThumb = demo.querySelector<HTMLImageElement>('[data-look-thumb]');
   const floatingLook = document.querySelector<HTMLElement>('[data-floating-look]');
+  const visualLook = document.querySelector<HTMLElement>('[data-visual-look]');
   lookButton?.addEventListener('click', () => {
     lookIndex = (lookIndex + 1) % looks.length;
     const look = looks[lookIndex];
@@ -230,6 +231,9 @@ export const initCameraDemo = () => {
     if (lookThumb) lookThumb.src = look.image;
     if (lookLabel) lookLabel.textContent = look.name;
     if (floatingLook) floatingLook.textContent = look.name;
+    if (visualLook) {
+      visualLook.textContent = `${look.name.charAt(0)}${look.name.slice(1).toLowerCase()}`;
+    }
     announce(`${look.name.toLowerCase()} Iris Look selected`);
   });
 

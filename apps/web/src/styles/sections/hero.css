@@ -127,3 +127,7 @@ h1 {
   letter-spacing: .14em;
   text-transform: uppercase;
 }
+
+.visual-note strong {
+  font-weight: 600;
+}
