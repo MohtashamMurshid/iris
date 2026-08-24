@@ -38,9 +38,9 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
-    "dev": "expo start",
+    "dev": "expo start --go",
     "dev-client": "expo start --dev-client",
-    "start": "expo start",
+    "start": "expo start --go",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
     "ios": "expo run:ios",
