@@ -19,7 +19,7 @@
 .button-light:hover { background: white; }
 .button-dark { background: var(--graphite); border-color: var(--line); }
 .button-dark:hover, .button-ghost:hover { border-color: rgb(244 242 237 / 30%); }
-.button-ghost { border-color: var(--line); background: rgb(23 23 26 / 72%); }
+.button-ghost { border-color: var(--glass-border); background: var(--glass-fill); }
 .button-compact {
   min-height: 40px;
   padding: 0 16px;

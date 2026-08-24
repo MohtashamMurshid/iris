@@ -1,0 +1,35 @@
+---
+import { looks } from '../../data/content';
+---
+
+<section class="section captures" id="captures" aria-labelledby="captures-title">
+  <header class="captures-copy reveal">
+    <p class="section-label">04 / Captures</p>
+    <h2 id="captures-title">Taken with Iris.</h2>
+    <p class="section-copy">
+      Sample photographs processed with each Iris Look. Quiet proof, not a feed.
+    </p>
+  </header>
+
+  <ul class="capture-film">
+    {
+      looks.map((look, index) => (
+        <li class={`capture-frame capture-${look.className} reveal`} style={`--delay: ${index * 60}ms`}>
+          <figure>
+            <img
+              src={look.image}
+              alt={look.alt}
+              width={look.width}
+              height={look.height}
+              loading="lazy"
+            />
+            <figcaption>
+              <span>{look.name}</span>
+              <small>Iris Look</small>
+            </figcaption>
+          </figure>
+        </li>
+      ))
+    }
+  </ul>
+</section>

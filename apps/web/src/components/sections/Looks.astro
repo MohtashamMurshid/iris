@@ -5,10 +5,10 @@ import { looks } from '../../data/content';
 <section class="section looks" id="looks">
   <header class="looks-copy reveal">
     <p class="section-label">03 / Looks</p>
-    <h2>Color with<br /><span>a point of view.</span></h2>
+    <h2>Five looks.<br /><span>Shown live.</span></h2>
     <p class="section-copy">
-      A small set of considered renderings, shown live in the viewfinder and applied with care to
-      the final image.
+      A small set of considered renderings—visible in the viewfinder, applied with care to the
+      final file.
     </p>
   </header>
 
@@ -17,26 +17,16 @@ import { looks } from '../../data/content';
       looks.map((look, index) => (
         <article
           class={`look-card look-${look.className} reveal`}
-          style={`--delay: ${index * 90}ms`}
+          style={`--delay: ${index * 70}ms`}
         >
           <div class="look-art">
-            <img src={look.image} alt={look.alt} width="960" height="1440" loading="lazy" />
-            <svg
-              class="look-frame"
-              viewBox="0 0 100 100"
-              preserveAspectRatio="none"
-              aria-hidden="true"
-            >
-              <rect
-                x="1"
-                y="1"
-                width="98"
-                height="98"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="0.6"
-                stroke-dasharray="3 2"></rect>
-            </svg>
+            <img
+              src={look.image}
+              alt={look.alt}
+              width={look.width}
+              height={look.height}
+              loading="lazy"
+            />
           </div>
           <div class="look-meta">
             <span>0{index + 1}</span>

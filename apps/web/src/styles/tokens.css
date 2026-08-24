@@ -9,6 +9,13 @@
   --chalk: #f4f2ed;
   --fog: #98989f;
   --signal-red: #f20d2f;
+  --amber: #f5c400;
+  --meter-red: #ff3b30;
   --line: rgb(244 242 237 / 12%);
+  --glass-fill: rgb(12 12 14 / 78%);
+  --glass-border: rgb(255 255 255 / 12%);
+  --shutter: #f4f4f6;
+  --shutter-well: rgb(244 244 246 / 28%);
+  --muted: rgb(255 255 255 / 62%);
   --display: 'Rajdhani', 'Arial Narrow', sans-serif;
 }

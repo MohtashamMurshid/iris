@@ -1,101 +1,106 @@
 ---
-import IrisMark from '../brand/IrisMark.astro';
+import { looks } from '../../data/content';
 
-const lenses = ['24', '28', '35', '50'] as const;
+const heroLook = looks[0];
+const zooms = [
+  { lens: '24', label: '1' },
+  { lens: '28', label: '2' },
+  { lens: '35', label: '4' },
+  { lens: '50', label: '8' },
+] as const;
 ---
 
 <div class="phone hero-motion" data-camera-demo>
   <div class="phone-bezel">
     <div class="phone-screen">
-      <div class="phone-status">
-        <div class="mini-brand">
-          <IrisMark size="mini" />
-          IRIS
+      <div class="chrome-top">
+        <div class="status-cluster">
+          <span class="camera-state"><i></i><span data-camera-label>BACK</span></span>
         </div>
-        <span class="camera-state"><i></i><span data-camera-label>BACK</span></span>
-        <span class="frame-count"><strong>36</strong><small>FRAMES</small></span>
+        <div class="mode-switch">
+          <button type="button" class="auto-pill active" data-mode="photo" aria-pressed="true"
+            >AUTO</button
+          >
+          <button type="button" class="auto-pill" data-mode="manual" aria-pressed="false"
+            >MANUAL</button
+          >
+        </div>
+        <p class="frame-count"><strong>36</strong><small>FRAMES</small></p>
       </div>
 
       <div class="viewfinder" data-viewfinder>
         <img
           class="viewfinder-photo"
           data-camera-image
-          src="/images/hero/iris-hero.jpg"
+          src={heroLook.image}
           alt=""
-          width="1024"
-          height="1536"
+          width={heroLook.width}
+          height={heroLook.height}
         />
         <div class="camera-grain" aria-hidden="true"></div>
         <div class="camera-flash" aria-hidden="true"></div>
         <div class="grid-lines" aria-hidden="true"></div>
-        <div class="preview-label"><i></i> STYLE PREVIEW</div>
+        <div class="preview-label"><i></i> LIVE LOOK</div>
         <div class="exposure-pill">
           <button type="button" data-shutter-speed aria-label="Change shutter speed">1/125</button>
           <i aria-hidden="true"></i>
           <button type="button" data-iso aria-label="Change ISO">ISO 64</button>
         </div>
         <div class="focus-reticle"><i></i></div>
-        <div class="lens-rail" aria-label="Focal length">
-          {
-            lenses.map((lens) => (
-              <button
-                type="button"
-                class={lens === '35' ? 'active' : undefined}
-                data-lens={lens}
-                aria-label={`${lens} millimeter lens`}
-                aria-pressed={lens === '35' ? 'true' : undefined}
-              >
-                {lens}
-              </button>
-            ))
-          }
-          <small>MM</small>
+        <div class="inner-tools">
+          <button type="button" class="glass-chip" data-format aria-label="Change file format">
+            <strong>HEIC</strong>
+          </button>
+          <button
+            type="button"
+            class="glass-chip active"
+            data-grid
+            aria-label="Toggle composition grid"
+            aria-pressed="true"><strong>3 × 3</strong></button
+          >
         </div>
       </div>
 
-      <div class="control-deck">
-        <div class="mode-switch">
-          <button type="button" class="active" data-mode="photo" aria-pressed="true"
-            >PHOTO<i></i></button
-          >
-          <button type="button" data-mode="manual" aria-pressed="false">MANUAL<i></i></button>
+      <div class="focus-row">
+        <button type="button" class="circle-chip" data-flash aria-label="Toggle flash" aria-pressed="false">
+          <i>ϟ</i><strong>OFF</strong>
+        </button>
+        <button type="button" class="af-pill" data-focus aria-label="Refocus camera">
+          <strong>AF</strong>
+        </button>
+        <div class="zoom-pill" aria-label="Zoom">
+          {
+            zooms.map((zoom) => (
+              <button
+                type="button"
+                class={zoom.lens === '28' ? 'active' : undefined}
+                data-lens={zoom.lens}
+                aria-label={`${zoom.label} times zoom`}
+                aria-pressed={zoom.lens === '28' ? 'true' : undefined}
+              >
+                {zoom.label}
+              </button>
+            ))
+          }
         </div>
-        <div class="tool-row">
-          <button type="button" data-format aria-label="Change file format"
-            ><i>◫</i><strong>HEIC</strong><small>FORMAT</small></button
-          >
-          <button type="button" data-flash aria-label="Toggle flash" aria-pressed="false"
-            ><i>ϟ</i><strong>OFF</strong><small>FLASH</small></button
-          >
-          <button type="button" data-focus aria-label="Refocus camera"
-            ><i>◎</i><strong>AUTO</strong><small>FOCUS</small></button
-          >
-          <button
-            type="button"
-            class="active"
-            data-grid
-            aria-label="Toggle composition grid"
-            aria-pressed="true"><i>▦</i><strong>3 × 3</strong><small>GRID</small></button
-          >
-        </div>
-        <div class="capture-row">
-          <button type="button" class="look-control" data-look aria-label="Change Iris Look"
-            ><i></i><b><small>IRIS LOOK</small><span>NATURAL</span></b></button
-          >
-          <button type="button" class="shutter" data-capture aria-label="Take demo photo"
-            ><i></i></button
-          >
-          <div class="capture-actions">
-            <button type="button" class="last-shot" data-last-shot hidden aria-label="Download last photo">
-              <img alt="" width="72" height="72" />
-            </button>
-            <button type="button" class="camera-flip" data-camera-flip aria-label="Flip camera"
-              >↻</button
-            >
-          </div>
-        </div>
-        <span class="camera-announcer" data-camera-announcer aria-live="polite"></span>
+        <button type="button" class="circle-chip camera-flip" data-camera-flip aria-label="Flip camera"
+          >↻</button
+        >
       </div>
+
+      <div class="bottom-bar">
+        <div class="thumb-well">
+          <button type="button" class="last-shot" data-last-shot hidden aria-label="Download last photo">
+            <img alt="" width="72" height="72" />
+          </button>
+        </div>
+        <button type="button" class="shutter" data-capture aria-label="Take demo photo"><i></i></button>
+        <button type="button" class="look-control" data-look aria-label="Change Iris Look">
+          <img data-look-thumb src={heroLook.image} alt="" width="56" height="72" />
+          <b><small>LOOK</small><span>NATURAL</span></b>
+        </button>
+      </div>
+      <span class="camera-announcer" data-camera-announcer aria-live="polite"></span>
     </div>
   </div>
 </div>

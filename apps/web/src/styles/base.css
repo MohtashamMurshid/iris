@@ -8,9 +8,7 @@ html {
 body {
   margin: 0;
   overflow-x: hidden;
-  background:
-    radial-gradient(circle at 50% -12%, rgb(242 13 47 / 5%), transparent 30rem),
-    var(--optical-black);
+  background: var(--optical-black);
   color: var(--chalk);
   font-family: var(--display);
   font-weight: 400;

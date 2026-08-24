@@ -1,31 +1,28 @@
 ---
+import { looks } from '../../data/content';
 import PhoneDemo from './PhoneDemo.astro';
+
+const heroLook = looks[0];
 ---
 
 <section class="hero" aria-labelledby="hero-title">
-  <div class="hero-atmosphere" aria-hidden="true">
-    <div class="orbit orbit-one"></div>
-    <div class="orbit orbit-two"></div>
-    <div class="orbit orbit-three"></div>
-    <div class="red-glow"></div>
-  </div>
-
   <div class="hero-copy">
-    <p class="eyebrow hero-motion"><span></span> Open source camera app</p>
+    <p class="eyebrow hero-motion">
+      <span class="eyebrow-rule"></span>
+      Open source · in development
+    </p>
     <h1 id="hero-title" class="hero-motion">
-      The <em class="headline-accent">open-source</em> camera for <em class="headline-accent"
-        >iPhone</em
-      >.
+      Direct control.<br /><span>Open source.</span>
     </h1>
     <p class="hero-intro hero-motion">
-      An open-source iPhone camera app with direct manual control and live looks you can see before
-      the shot.
+      An iPhone camera with live Iris Looks and the controls you actually use.
+      Built in the open.
     </p>
     <div class="hero-actions">
       <a class="button button-light button-compact hero-motion" href="#early-access">
         Early access <span aria-hidden="true">↗</span>
       </a>
-      <a class="button button-ghost button-compact hero-motion" href="#features">Explore Iris</a>
+      <a class="button button-ghost button-compact hero-motion" href="#looks">Iris Looks</a>
     </div>
   </div>
 
@@ -40,6 +37,9 @@ import PhoneDemo from './PhoneDemo.astro';
 
     <PhoneDemo />
 
-    <p class="visual-note hero-motion"><span></span> Designed around the photograph—not the interface.</p>
+    <p class="visual-note hero-motion">
+      <span class="eyebrow-rule"></span>
+      Sample capture · {heroLook.name} look
+    </p>
   </div>
 </section>

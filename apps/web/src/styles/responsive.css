@@ -1,10 +1,26 @@
+@media (max-width: 1100px) {
+  .look-rail,
+  .capture-film {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .look-chrome,
+  .look-faded,
+  .capture-chrome,
+  .capture-faded {
+    grid-column: span 1;
+  }
+
+  .look-art { height: 300px; }
+}
+
 @media (max-width: 980px) {
   .site-header nav { display: none; }
   .site-header { grid-template-columns: 1fr 1fr; }
 
   .hero {
     grid-template-columns: 1fr;
-    grid-template-rows: auto minmax(480px, 55vh);
+    grid-template-rows: auto minmax(520px, 58vh);
     align-items: stretch;
     min-height: auto;
   }
@@ -15,29 +31,21 @@
     text-align: center;
   }
 
-  .hero h1 { max-width: 14ch; }
+  .hero h1 { max-width: 12ch; }
 
   .hero-visual {
     justify-content: center;
     align-items: flex-start;
-    padding: 12px 0 0;
+    padding: 12px 0 36px;
   }
 
   .phone {
-    width: min(250px, 56vw);
-    transform: rotate(2deg);
-  }
-
-  .orbit-one,
-  .orbit-two,
-  .orbit-three {
-    top: 62%;
-    left: 50%;
+    width: min(270px, 58vw);
   }
 
   .visual-note {
     right: auto;
-    bottom: 28px;
+    bottom: 16px;
     left: 36px;
   }
 
@@ -51,14 +59,12 @@
 
   .principles,
   .early-access,
-  .section-head,
-  .looks {
+  .section-head {
     grid-template-columns: 1fr;
     gap: 36px;
   }
 
   .section-diagram { justify-content: start; }
-  .look-art { height: 380px; }
 }
 
 @media (max-width: 680px) {
@@ -72,7 +78,7 @@
   .header-cta { min-height: 32px; padding: 0 12px; font-size: 10px; }
 
   .hero {
-    grid-template-rows: auto minmax(460px, 60vh);
+    grid-template-rows: auto minmax(500px, 62vh);
   }
 
   .hero .hero-copy {
@@ -87,16 +93,15 @@
   .hero-actions .button { width: 100%; }
 
   .phone {
-    width: min(250px, 72vw);
-    margin-bottom: -24px;
-    transform: rotate(1.5deg);
+    width: min(260px, 74vw);
+    margin-bottom: 8px;
   }
 
   .floating-chip { display: none; }
 
   .visual-note {
     right: 20px;
-    bottom: 25px;
+    bottom: 12px;
     left: 20px;
     justify-content: center;
     font-size: 10px;
@@ -121,19 +126,28 @@
   .feature-item:last-child { border-bottom: 0; }
   .feature-top { margin-bottom: 28px; }
 
-  .look-rail {
+  .look-rail,
+  .capture-film {
     display: flex;
     gap: 12px;
     overflow-x: auto;
+    background: transparent;
+    border: 0;
     scroll-snap-type: x mandatory;
   }
 
-  .look-card {
-    flex: 0 0 84%;
+  .look-card,
+  .capture-frame {
+    flex: 0 0 78%;
     scroll-snap-align: start;
   }
 
+  .capture-frame {
+    border: 1px solid var(--line);
+  }
+
   .look-art { height: 400px; }
+  .capture-frame img { height: 360px; }
 
   footer {
     grid-template-columns: 1fr auto;

@@ -27,19 +27,11 @@
   50% { transform: scale(1.12); opacity: .78; }
 }
 
-.chip-look { transform: rotate(4deg); }
-.chip-raw { transform: rotate(-3deg); }
-
-.js .hero-atmosphere .orbit {
-  opacity: 0;
-}
-
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
 
   .hero-motion,
-  .reveal,
-  .hero-atmosphere .orbit {
+  .reveal {
     opacity: 1;
     transform: none;
   }
@@ -61,9 +53,9 @@
   .grid-lines,
   .focus-reticle,
   .button,
-  .lens-rail button,
-  .tool-row > button,
-  .look-control > i,
+  .zoom-pill button,
+  .circle-chip,
+  .look-control img,
   .shutter i,
   .camera-flip,
   .last-shot {

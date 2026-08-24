@@ -1,44 +1,29 @@
 .looks {
   display: grid;
-  grid-template-columns: .75fr 1.45fr;
-  gap: 5vw;
-  align-items: start;
+  gap: 48px;
 }
 
-.looks-copy .section-label { margin-bottom: 28px; }
+.looks-copy {
+  max-width: 36rem;
+}
+
+.looks-copy .section-label { margin-bottom: 22px; }
 .looks-copy .section-copy { margin-top: 8px; }
 
 .look-rail {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .look-card { min-width: 0; }
 
 .look-art {
   position: relative;
-  height: 420px;
+  height: 340px;
   overflow: hidden;
-  background: #74716c;
-}
-
-.look-art::after {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, transparent 58%, rgb(5 5 6 / 28%));
-  content: '';
-  pointer-events: none;
-}
-
-.look-frame {
-  position: absolute;
-  inset: 8px;
-  z-index: 2;
-  width: auto;
-  height: auto;
-  color: rgb(244 242 237 / 34%);
-  pointer-events: none;
+  border: 1px solid var(--line);
+  background: var(--ink);
 }
 
 .look-art img {
@@ -48,25 +33,27 @@
   transition: transform 500ms ease;
 }
 
-.look-card:hover .look-art img { transform: scale(1.025); }
-.look-natural .look-art img { object-position: 55% 50%; }
-.look-daylight .look-art img { object-position: 51% 50%; }
-.look-noir .look-art img { object-position: 42% 50%; }
+.look-card:hover .look-art img { transform: scale(1.02); }
+.look-natural .look-art img { object-position: 40% 60%; }
+.look-daylight .look-art img { object-position: 50% 40%; }
+.look-noir .look-art img { object-position: 50% 50%; }
+.look-chrome .look-art img { object-position: 60% 45%; }
+.look-faded .look-art img { object-position: 45% 40%; }
 
 .look-meta {
   display: grid;
-  grid-template-columns: 28px 1fr;
-  gap: 10px;
-  padding-top: 14px;
+  grid-template-columns: 22px 1fr;
+  gap: 8px;
+  padding-top: 12px;
 }
 
 .look-meta > span {
   padding-top: 4px;
-  color: var(--signal-red);
+  color: var(--amber);
   font-size: 9px;
   font-weight: 600;
   letter-spacing: .12em;
 }
 
-.look-meta h3 { margin-bottom: 2px; font-size: 16px; }
-.look-meta p { margin: 0; color: var(--fog); font-size: 11px; }
+.look-meta h3 { margin-bottom: 2px; font-size: 15px; }
+.look-meta p { margin: 0; color: var(--fog); font-size: 11px; line-height: 1.45; }

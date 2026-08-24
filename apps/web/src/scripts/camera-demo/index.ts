@@ -40,7 +40,13 @@ export const initCameraDemo = () => {
     if (announcer) announcer.textContent = message;
   };
 
-  const currentLook = () => looks[lookIndex];
+  const currentLook = () => {
+    const look = looks[lookIndex] ?? looks[0];
+    if (!look) {
+      throw new Error('No Iris Looks configured');
+    }
+    return look;
+  };
   const currentIso = () => isoBrightness[isoSteps[isoIndex]];
   const currentShutter = () => shutterSteps[shutterIndex];
 
@@ -207,17 +213,21 @@ export const initCameraDemo = () => {
     announce('Focus locked');
     window.setTimeout(() => {
       focusButton.classList.remove('active');
-      if (focusLabel) focusLabel.textContent = 'AUTO';
+      if (focusLabel) focusLabel.textContent = 'AF';
     }, 900);
   });
 
   const lookButton = demo.querySelector<HTMLButtonElement>('[data-look]');
   const lookLabel = lookButton?.querySelector<HTMLElement>('b span');
+  const lookThumb = demo.querySelector<HTMLImageElement>('[data-look-thumb]');
   const floatingLook = document.querySelector<HTMLElement>('[data-floating-look]');
   lookButton?.addEventListener('click', () => {
     lookIndex = (lookIndex + 1) % looks.length;
     const look = looks[lookIndex];
+    if (!look) return;
     applyLook(viewfinder, demo, look);
+    if (cameraImage) cameraImage.src = look.image;
+    if (lookThumb) lookThumb.src = look.image;
     if (lookLabel) lookLabel.textContent = look.name;
     if (floatingLook) floatingLook.textContent = look.name;
     announce(`${look.name.toLowerCase()} Iris Look selected`);

@@ -18,7 +18,6 @@ const runHeroMotion = () => {
 
   if (prefersReducedMotion()) {
     showImmediately('.hero-motion');
-    showImmediately('.hero-atmosphere .orbit');
     return;
   }
 
@@ -48,7 +47,7 @@ const runHeroMotion = () => {
 
   animate(
     '.phone',
-    { opacity: [0, 1], y: [36, 0], scale: [0.97, 1], rotate: 2.5 },
+    { opacity: [0, 1], y: [28, 0], scale: [0.98, 1] },
     { duration: 1.05, delay: 0.18, ease: easeOut }
   );
 
@@ -68,12 +67,6 @@ const runHeroMotion = () => {
     '.visual-note',
     { opacity: [0, 1] },
     { duration: 0.6, delay: 0.75, ease: easeOut }
-  );
-
-  animate(
-    '.hero-atmosphere .orbit',
-    { opacity: [0, 1] },
-    { duration: 1.2, delay: stagger(0.08, { startDelay: 0.1 }), ease: easeOut }
   );
 };
 
