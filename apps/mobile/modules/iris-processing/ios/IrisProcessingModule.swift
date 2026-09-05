@@ -12,6 +12,17 @@ public class IrisProcessingModule: Module {
   public func definition() -> ModuleDefinition {
     Name("IrisProcessing")
 
+    // VisionCamera and Core Image use tmp, which is separate from Expo's cache directory.
+    AsyncFunction("releaseTemporary") { (source: String) in
+      guard let url = URL(string: source), url.isFileURL else { return }
+      let file = url.resolvingSymlinksInPath().standardizedFileURL
+      let root = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().standardizedFileURL
+      guard file.path.hasPrefix(root.path.hasSuffix("/") ? root.path : root.path + "/"),
+            FileManager.default.fileExists(atPath: file.path),
+            try file.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile == true else { return }
+      try FileManager.default.removeItem(at: file)
+    }.runOnQueue(queue)
+
     // Probe the same output combination without starting another capture session.
     AsyncFunction("formats") { (deviceID: String) -> [String] in
       guard let device = AVCaptureDevice(uniqueID: deviceID) else { return ["jpeg"] }

@@ -1,4 +1,8 @@
 import { Directory, File, Paths } from "expo-file-system";
+import { requireOptionalNativeModule } from "expo-modules-core";
+const processor = requireOptionalNativeModule<{
+  releaseTemporary?: (uri: string) => Promise<void>;
+}>("IrisProcessing");
 const root = new Directory(Paths.document, "iris-captures");
 export async function retainFile(uri: string, id: string, role: string) {
   root.create({ idempotent: true, intermediates: true });
@@ -20,7 +24,11 @@ export async function removeFile(uri: string) {
   if (file.exists) file.delete();
 }
 export async function releaseTemporary(uri: string) {
-  if (!uri.startsWith(Paths.cache.uri)) return;
-  const file = new File(uri);
-  if (file.exists) file.delete();
+  if (uri.startsWith(Paths.cache.uri.replace(/\/$/, "") + "/")) {
+    const file = new File(uri);
+    if (file.exists) file.delete();
+  } else {
+    // The native method only deletes regular files inside this app's tmp directory.
+    await processor?.releaseTemporary?.(uri);
+  }
 }

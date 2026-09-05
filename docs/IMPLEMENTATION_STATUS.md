@@ -73,4 +73,4 @@ The remaining npm audit reports are `image-size` (and Metro dependents) and `dec
 
 The newer UI is connected to the working capture and library flow. Placeholder sensor readings, fake photos and unsupported priority-mode actions are not used by the camera screen. The native controller locks ISO and shutter together; its exposure menu therefore offers Auto and Manual. The aspect menu explicitly describes preview framing, which preserves the full-resolution original.
 
-Review also added cleanup of retained files when thumbnail copying or reading the library index fails. Incoming temporary originals remain available for retry.
+Review also added cleanup of retained files when thumbnail copying or reading the library index fails. Incoming temporary originals remain available for retry. Successfully retained captures and rendered Looks release their temporary files from both Expo’s cache and Apple’s separate temporary directory; the native cleanup method is restricted to regular files within the app’s temporary directory.
