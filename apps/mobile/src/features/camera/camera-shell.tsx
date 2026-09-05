@@ -347,7 +347,7 @@ export function CameraShell({
                           onPress={() => onUpdate({ zoom: stop })}
                           style={[
                             styles.zoomStop,
-                            { minHeight: 44 },
+                            { minHeight: 44, minWidth: 44 },
                             Math.abs(p.zoom - stop) < 0.05 &&
                               styles.zoomStopSelected,
                           ]}

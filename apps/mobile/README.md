@@ -81,3 +81,5 @@ For cloud builds, `eas.json` includes development, simulator, preview and produc
 For browser development, `npm run web` opens the same camera UI with browser-supported capture. Use HTTPS or localhost for camera permissions. Browser photos use IndexedDB and download/share; native-only hardware controls are unavailable where the browser does not expose them.
 
 See [implementation and validation](../../docs/IMPLEMENTATION_STATUS.md) for automated checks and the physical-device release checklist. Shutter and ISO lock together; RAW stays unprocessed. All originals remain in Iris until deleted, and deleting Iris also deletes its private library.
+
+Browser tests run the exported app with Expo’s production server. Run `npm run build` before `npm run test:e2e`. Expo’s server resolves clean routes such as `/lab` to their exported HTML files.

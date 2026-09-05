@@ -6,7 +6,7 @@ export default defineConfig({
   timeout: 60000,
   expect: { timeout: 15000 },
   use: {
-    baseURL: process.env.IRIS_E2E_BASE_URL ?? "http://localhost:8082",
+    baseURL: process.env.IRIS_E2E_BASE_URL ?? "http://localhost:4175",
     viewport: { width: 390, height: 844 },
     permissions: ["camera"],
     launchOptions: {
@@ -22,8 +22,8 @@ export default defineConfig({
   webServer: process.env.IRIS_E2E_BASE_URL
     ? undefined
     : {
-        command: "npx expo start --port 8082",
-        url: "http://localhost:8082",
+        command: "npx expo serve --port 4175",
+        url: "http://localhost:4175",
         reuseExistingServer: !process.env.CI,
         timeout: 120000,
       },
