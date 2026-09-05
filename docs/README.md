@@ -40,3 +40,5 @@ v1 scope is **still photography on iPhone**. The product is actively being built
 2. [Contributing](../CONTRIBUTING.md)
 3. PRD sections that match your change (viewfinder, Looks, formats, etc.)
 4. Expo [SDK 57 docs](https://docs.expo.dev/versions/v57.0.0/) when touching native/camera APIs
+
+- [Camera implementation and validation](IMPLEMENTATION_STATUS.md): implemented functionality, test commands and remaining iPhone release checks.

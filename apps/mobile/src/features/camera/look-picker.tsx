@@ -1,18 +1,28 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
-import { CameraChrome, ChromeFonts, LOOKS, lookById, type LookId } from '@/features/camera/chrome';
-import { CheckIcon } from '@/features/camera/chrome-icons';
-import { GlassPanel } from '@/features/camera/glass-panel';
-import { hapticSelect, hapticSuccess } from '@/features/camera/haptics';
-import { LookArtwork } from '@/features/camera/look-artwork';
+import {
+  CameraChrome,
+  ChromeFonts,
+  LOOKS,
+  lookById,
+  type LookId,
+} from "@/features/camera/chrome";
+import { CheckIcon } from "@/features/camera/chrome-icons";
+import { GlassPanel } from "@/features/camera/glass-panel";
+import { hapticSelect, hapticSuccess } from "@/features/camera/haptics";
+import { LookArtwork } from "@/features/camera/look-artwork";
 
 type LookPickerProps = {
   selectedId: LookId;
   onSelect: (id: LookId) => void;
-  onConfirm: () => void;
+  onConfirm?: () => void;
 };
 
-export function LookPicker({ selectedId, onSelect, onConfirm }: LookPickerProps) {
+export function LookPicker({
+  selectedId,
+  onSelect,
+  onConfirm,
+}: LookPickerProps) {
   const selected = lookById(selectedId);
 
   return (
@@ -20,22 +30,34 @@ export function LookPicker({ selectedId, onSelect, onConfirm }: LookPickerProps)
       <ScrollView
         contentContainerStyle={styles.carousel}
         horizontal
-        showsHorizontalScrollIndicator={false}>
+        showsHorizontalScrollIndicator={false}
+      >
         {LOOKS.map((look) => {
           const selectedLook = look.id === selectedId;
           return (
             <Pressable
-              accessibilityLabel={`${look.name} look`}
+              accessibilityRole="button"
+              accessibilityLabel={look.name}
               accessibilityState={{ selected: selectedLook }}
               key={look.id}
               onPress={() => {
                 hapticSelect();
                 onSelect(look.id);
               }}
-              style={({ pressed }) => [styles.lookItem, pressed && styles.pressed]}
-              testID={`look-${look.id}`}>
+              style={({ pressed }) => [
+                styles.lookItem,
+                pressed && styles.pressed,
+              ]}
+              testID={`look-${look.id}`}
+            >
               <LookArtwork look={look} selected={selectedLook} size={56} />
-              <Text numberOfLines={1} style={[styles.lookName, selectedLook && styles.lookNameSelected]}>
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.lookName,
+                  selectedLook && styles.lookNameSelected,
+                ]}
+              >
                 {look.name}
               </Text>
             </Pressable>
@@ -48,26 +70,33 @@ export function LookPicker({ selectedId, onSelect, onConfirm }: LookPickerProps)
         <Text style={styles.description}>{selected.description}</Text>
       </View>
 
-      <Pressable
-        accessibilityLabel="Confirm look"
-        onPress={() => {
-          hapticSuccess();
-          onConfirm();
-        }}
-        style={({ pressed }) => [styles.confirm, pressed && styles.confirmPressed]}
-        testID="look-confirm">
-        <CheckIcon color={CameraChrome.ink} size={26} />
-      </Pressable>
+      {onConfirm && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Confirm look"
+          onPress={() => {
+            hapticSuccess();
+            onConfirm();
+          }}
+          style={({ pressed }) => [
+            styles.confirm,
+            pressed && styles.confirmPressed,
+          ]}
+          testID="look-confirm"
+        >
+          <CheckIcon color={CameraChrome.ink} size={26} />
+        </Pressable>
+      )}
     </GlassPanel>
   );
 }
 
 const styles = StyleSheet.create({
   sheet: {
-    borderCurve: 'continuous',
+    borderCurve: "continuous",
     borderRadius: CameraChrome.radiusSheet,
     minHeight: 268,
-    overflow: 'hidden',
+    overflow: "hidden",
     paddingBottom: 22,
     paddingTop: 22,
   },
@@ -76,7 +105,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   lookItem: {
-    alignItems: 'center',
+    alignItems: "center",
     gap: 7,
     width: 64,
   },
@@ -84,7 +113,7 @@ const styles = StyleSheet.create({
     color: CameraChrome.muted,
     fontFamily: ChromeFonts.sans,
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   lookNameSelected: {
     color: CameraChrome.white,
@@ -98,7 +127,7 @@ const styles = StyleSheet.create({
     color: CameraChrome.white,
     fontFamily: ChromeFonts.sans,
     fontSize: 28,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: -0.4,
   },
   description: {
@@ -110,7 +139,7 @@ const styles = StyleSheet.create({
     opacity: 0.92,
   },
   confirm: {
-    alignItems: 'center',
+    alignItems: "center",
     backgroundColor: CameraChrome.amber,
     borderBottomLeftRadius: 18,
     borderBottomRightRadius: 36,
@@ -118,8 +147,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 16,
     bottom: 14,
     height: 64,
-    justifyContent: 'center',
-    position: 'absolute',
+    justifyContent: "center",
+    position: "absolute",
     right: 14,
     width: 72,
   },

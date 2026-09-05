@@ -1,16 +1,22 @@
 {
   "expo": {
-    "name": "iris",
+    "name": "Iris",
     "slug": "iris",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "iris",
     "userInterfaceStyle": "dark",
     "ios": {
       "appleTeamId": "K36J4X2J9B",
-      "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.mohtashammurshid.iris"
+      "icon": "./assets/images/icon.png",
+      "bundleIdentifier": "com.mohtashammurshid.iris",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSPhotoLibraryAddUsageDescription": "Allow Iris to save the photographs you choose to your photo library.",
+        "NSMotionUsageDescription": "Allow Iris to use device motion for the viewfinder level.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -41,14 +47,31 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#050506"
+          "backgroundColor": "#050506",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 96
         }
       ],
-      "expo-image"
+      "expo-image",
+      "expo-sharing",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow Iris to access photographs you choose.",
+          "savePhotosPermission": "Allow Iris to save the photographs you choose to your photo library.",
+          "granularPermissions": [
+            "photo"
+          ]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "platforms": [
+      "ios",
+      "web"
+    ]
   }
 }

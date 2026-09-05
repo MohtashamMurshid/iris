@@ -1,16 +1,16 @@
-import { Fonts, IrisColors } from '@/constants/theme';
+import { Fonts, IrisColors } from "@/constants/theme";
 
 export const CameraChrome = {
-  amber: '#F5C400',
-  meterRed: '#FF3B30',
+  amber: "#F5C400",
+  meterRed: "#FF3B30",
   ink: IrisColors.opticalBlack,
-  glassFill: 'rgba(12, 12, 14, 0.78)',
-  glassBorder: 'rgba(255, 255, 255, 0.12)',
-  white: '#FFFFFF',
-  muted: 'rgba(255, 255, 255, 0.62)',
-  shutter: '#F4F4F6',
-  shutterWell: 'rgba(244, 244, 246, 0.28)',
-  dim: 'rgba(0, 0, 0, 0.42)',
+  glassFill: "rgba(12, 12, 14, 0.78)",
+  glassBorder: "rgba(255, 255, 255, 0.12)",
+  white: "#FFFFFF",
+  muted: "rgba(255, 255, 255, 0.62)",
+  shutter: "#F4F4F6",
+  shutterWell: "rgba(244, 244, 246, 0.28)",
+  dim: "rgba(0, 0, 0, 0.42)",
   radiusButton: 22,
   radiusPill: 28,
   radiusSheet: 44,
@@ -22,20 +22,21 @@ export const ChromeFonts = {
   mono: Fonts.mono,
 } as const;
 
-export type ExposureMode = 'auto' | 'manual' | 'shutter' | 'iso';
-export type AspectId = '3-2' | '1-1' | '65-24' | 'ig';
-export type OverlayId = 'thirds' | 'grid' | 'golden' | 'rabatment' | 'off';
-export type ZoomStop = '1' | '2' | '4' | '8';
-export type LookId = 'natural' | 'daylight' | 'noir' | 'chrome' | 'faded';
+export type ExposureMode = "auto" | "manual" | "shutter" | "iso";
+export type AspectId = "3-2" | "1-1" | "65-24" | "ig";
+export type OverlayId = "thirds" | "grid" | "golden" | "rabatment" | "off";
+export type ZoomStop = "1" | "2" | "4" | "8";
+export type LookId =
+  "none" | "natural" | "daylight" | "noir" | "chrome" | "faded";
 
 export const EXPOSURE_MODES: {
   id: ExposureMode;
   label: string;
 }[] = [
-  { id: 'auto', label: 'Auto' },
-  { id: 'manual', label: 'Manual' },
-  { id: 'shutter', label: 'Shutter Priority' },
-  { id: 'iso', label: 'ISO Priority' },
+  { id: "auto", label: "Auto" },
+  { id: "manual", label: "Manual" },
+  { id: "shutter", label: "Shutter Priority" },
+  { id: "iso", label: "ISO Priority" },
 ];
 
 export const ASPECTS: {
@@ -44,21 +45,21 @@ export const ASPECTS: {
   caption: string;
   widthOverHeight: number;
 }[] = [
-  { id: '3-2', label: '3:2', caption: '35mm', widthOverHeight: 2 / 3 },
-  { id: '1-1', label: '1:1', caption: 'Square', widthOverHeight: 1 },
-  { id: '65-24', label: '65:24', caption: 'Pano', widthOverHeight: 65 / 24 },
-  { id: 'ig', label: 'IG', caption: '4:5', widthOverHeight: 4 / 5 },
+  { id: "3-2", label: "3:2", caption: "35mm", widthOverHeight: 2 / 3 },
+  { id: "1-1", label: "1:1", caption: "Square", widthOverHeight: 1 },
+  { id: "65-24", label: "65:24", caption: "Pano", widthOverHeight: 65 / 24 },
+  { id: "ig", label: "IG", caption: "4:5", widthOverHeight: 4 / 5 },
 ];
 
 export const OVERLAYS: { id: OverlayId; label: string }[] = [
-  { id: 'thirds', label: 'Thirds' },
-  { id: 'grid', label: 'Grid' },
-  { id: 'golden', label: 'Golden' },
-  { id: 'rabatment', label: 'Rabatment' },
-  { id: 'off', label: 'Off' },
+  { id: "thirds", label: "Thirds" },
+  { id: "grid", label: "Grid" },
+  { id: "golden", label: "Golden" },
+  { id: "rabatment", label: "Rabatment" },
+  { id: "off", label: "Off" },
 ];
 
-export const ZOOM_STOPS: ZoomStop[] = ['1', '2', '4', '8'];
+export const ZOOM_STOPS: ZoomStop[] = ["1", "2", "4", "8"];
 
 export type LookSwatch = {
   id: LookId;
@@ -70,39 +71,47 @@ export type LookSwatch = {
 
 export const LOOKS: LookSwatch[] = [
   {
-    id: 'natural',
-    name: 'Natural',
-    description: 'Neutral color, gentle contrast, everyday light.',
-    bands: ['#2F4A38', '#C4A574', '#F3E6C8'],
-    accent: '#7A9A6A',
+    id: "none",
+    name: "None",
+    description:
+      "Original capture without an Iris Look. Apple processing may still be present.",
+    bands: ["#333333", "#888888", "#EEEEEE"],
+    accent: "#AAAAAA",
   },
   {
-    id: 'daylight',
-    name: 'Daylight',
-    description: 'Open shadows, clean whites, sunlit color.',
-    bands: ['#2E6BB2', '#F2C14E', '#F7F1DE'],
-    accent: '#F2C14E',
+    id: "natural",
+    name: "Natural",
+    description: "Neutral color, gentle contrast, everyday light.",
+    bands: ["#2F4A38", "#C4A574", "#F3E6C8"],
+    accent: "#7A9A6A",
   },
   {
-    id: 'noir',
-    name: 'Noir',
-    description: 'Deep blacks, silver midtones, no color.',
-    bands: ['#0C0C0C', '#6E6E6E', '#E8E8E8'],
-    accent: '#D0D0D0',
+    id: "daylight",
+    name: "Daylight",
+    description: "Open shadows, clean whites, sunlit color.",
+    bands: ["#2E6BB2", "#F2C14E", "#F7F1DE"],
+    accent: "#F2C14E",
   },
   {
-    id: 'chrome',
-    name: 'Chrome',
-    description: 'Cool highlights, tight contrast, metallic edges.',
-    bands: ['#1C3A48', '#8AA4B0', '#E4EEF2'],
-    accent: '#9FD2E0',
+    id: "noir",
+    name: "Noir",
+    description: "Deep blacks, silver midtones, no color.",
+    bands: ["#0C0C0C", "#6E6E6E", "#E8E8E8"],
+    accent: "#D0D0D0",
   },
   {
-    id: 'faded',
-    name: 'Faded',
-    description: 'Soft contrast, lifted blacks, quiet color.',
-    bands: ['#8A6A62', '#D8C4B0', '#EFE6D8'],
-    accent: '#C9A090',
+    id: "chrome",
+    name: "Chrome",
+    description: "Cool highlights, tight contrast, metallic edges.",
+    bands: ["#1C3A48", "#8AA4B0", "#E4EEF2"],
+    accent: "#9FD2E0",
+  },
+  {
+    id: "faded",
+    name: "Faded",
+    description: "Soft contrast, lifted blacks, quiet color.",
+    bands: ["#8A6A62", "#D8C4B0", "#EFE6D8"],
+    accent: "#C9A090",
   },
 ];
 
@@ -117,50 +126,59 @@ export type ScenePalette = {
 };
 
 export const SCENE_BY_LOOK: Record<LookId, ScenePalette> = {
+  none: {
+    sky: "#C45A28",
+    glow: "#E39A48",
+    ground: "#2A1C14",
+    path: "#3C2A1C",
+    gate: "#B42318",
+    gateFar: "#8A1C14",
+    veil: "transparent",
+  },
   natural: {
-    sky: '#C45A28',
-    glow: '#E39A48',
-    ground: '#2A1C14',
-    path: '#3C2A1C',
-    gate: '#B42318',
-    gateFar: '#8A1C14',
-    veil: 'transparent',
+    sky: "#C45A28",
+    glow: "#E39A48",
+    ground: "#2A1C14",
+    path: "#3C2A1C",
+    gate: "#B42318",
+    gateFar: "#8A1C14",
+    veil: "transparent",
   },
   daylight: {
-    sky: '#5C8FD4',
-    glow: '#F0C45A',
-    ground: '#5A4630',
-    path: '#7A6244',
-    gate: '#D43A22',
-    gateFar: '#B8321C',
-    veil: 'rgba(255, 236, 180, 0.08)',
+    sky: "#5C8FD4",
+    glow: "#F0C45A",
+    ground: "#5A4630",
+    path: "#7A6244",
+    gate: "#D43A22",
+    gateFar: "#B8321C",
+    veil: "rgba(255, 236, 180, 0.08)",
   },
   noir: {
-    sky: '#2A2A2A',
-    glow: '#6A6A6A',
-    ground: '#101010',
-    path: '#1A1A1A',
-    gate: '#141414',
-    gateFar: '#0C0C0C',
-    veil: 'rgba(0, 0, 0, 0.18)',
+    sky: "#2A2A2A",
+    glow: "#6A6A6A",
+    ground: "#101010",
+    path: "#1A1A1A",
+    gate: "#141414",
+    gateFar: "#0C0C0C",
+    veil: "rgba(0, 0, 0, 0.18)",
   },
   chrome: {
-    sky: '#3E5A66',
-    glow: '#8AA8B4',
-    ground: '#141C20',
-    path: '#1C262C',
-    gate: '#2A3C44',
-    gateFar: '#1C2A30',
-    veil: 'rgba(140, 200, 220, 0.10)',
+    sky: "#3E5A66",
+    glow: "#8AA8B4",
+    ground: "#141C20",
+    path: "#1C262C",
+    gate: "#2A3C44",
+    gateFar: "#1C2A30",
+    veil: "rgba(140, 200, 220, 0.10)",
   },
   faded: {
-    sky: '#C4A090',
-    glow: '#E4C8B0',
-    ground: '#6A5A50',
-    path: '#8A7668',
-    gate: '#A87868',
-    gateFar: '#8A6054',
-    veil: 'rgba(255, 248, 236, 0.16)',
+    sky: "#C4A090",
+    glow: "#E4C8B0",
+    ground: "#6A5A50",
+    path: "#8A7668",
+    gate: "#A87868",
+    gateFar: "#8A6054",
+    veil: "rgba(255, 248, 236, 0.16)",
   },
 };
 
@@ -182,14 +200,14 @@ export function aspectById(id: AspectId) {
 
 export function exposureLabel(mode: ExposureMode): string {
   switch (mode) {
-    case 'auto':
-      return 'AUTO';
-    case 'manual':
-      return 'MANUAL';
-    case 'shutter':
-      return 'Tv';
-    case 'iso':
-      return 'ISO';
+    case "auto":
+      return "AUTO";
+    case "manual":
+      return "MANUAL";
+    case "shutter":
+      return "Tv";
+    case "iso":
+      return "ISO";
     default: {
       const _never: never = mode;
       return _never;
@@ -197,44 +215,44 @@ export function exposureLabel(mode: ExposureMode): string {
   }
 }
 
-export type LabTab = 'frame' | 'quick' | 'exposure' | 'film' | 'balance';
+export type LabTab = "frame" | "quick" | "exposure" | "film" | "balance";
 
 export const LAB_TABS: { id: LabTab; label: string }[] = [
-  { id: 'frame', label: 'FRAME' },
-  { id: 'quick', label: 'QUICK EDIT' },
-  { id: 'exposure', label: 'EXPOSURE' },
-  { id: 'film', label: 'FILM' },
-  { id: 'balance', label: 'BALANCE' },
+  { id: "frame", label: "FRAME" },
+  { id: "quick", label: "QUICK EDIT" },
+  { id: "exposure", label: "EXPOSURE" },
+  { id: "film", label: "FILM" },
+  { id: "balance", label: "BALANCE" },
 ];
 
 export const OUTPUT_RESOLUTIONS = [
-  { id: '4k', label: '4K', caption: 'Default' },
-  { id: '12mp', label: '12MP', caption: 'Share' },
-  { id: 'full', label: 'Full', caption: 'Sensor' },
+  { id: "4k", label: "4K", caption: "Default" },
+  { id: "12mp", label: "12MP", caption: "Share" },
+  { id: "full", label: "Full", caption: "Sensor" },
 ] as const;
 
-export type OutputResolution = (typeof OUTPUT_RESOLUTIONS)[number]['id'];
+export type OutputResolution = (typeof OUTPUT_RESOLUTIONS)[number]["id"];
 
 export const WB_PRESETS = [
-  { id: 'auto', label: 'Auto' },
-  { id: 'daylight', label: 'Daylight' },
-  { id: 'cloudy', label: 'Cloudy' },
-  { id: 'tungsten', label: 'Tungsten' },
-  { id: 'fluorescent', label: 'Fluorescent' },
+  { id: "auto", label: "Auto" },
+  { id: "daylight", label: "Daylight" },
+  { id: "cloudy", label: "Cloudy" },
+  { id: "tungsten", label: "Tungsten" },
+  { id: "fluorescent", label: "Fluorescent" },
 ] as const;
 
-export type WbPreset = (typeof WB_PRESETS)[number]['id'];
+export type WbPreset = (typeof WB_PRESETS)[number]["id"];
 
 export const FILM_CONTROLS = [
-  { id: 'grain', label: 'Grain', glyph: '▦', min: -2, max: 2, step: 0.1 },
-  { id: 'halation', label: 'Halation', glyph: 'H', min: 0, max: 2, step: 0.1 },
-  { id: 'bloom', label: 'Bloom', glyph: '◌', min: 0, max: 8, step: 0.1 },
-  { id: 'mtf', label: 'MTF', glyph: '∿', min: 0, max: 4, step: 0.1 },
-  { id: 'haze', label: 'Haze', glyph: '~', min: 0, max: 2, step: 0.1 },
-  { id: 'vignette', label: 'Vignette', glyph: '◎', min: 0, max: 1, step: 0.05 },
+  { id: "grain", label: "Grain", glyph: "▦", min: -2, max: 2, step: 0.1 },
+  { id: "halation", label: "Halation", glyph: "H", min: 0, max: 2, step: 0.1 },
+  { id: "bloom", label: "Bloom", glyph: "◌", min: 0, max: 8, step: 0.1 },
+  { id: "mtf", label: "MTF", glyph: "∿", min: 0, max: 4, step: 0.1 },
+  { id: "haze", label: "Haze", glyph: "~", min: 0, max: 2, step: 0.1 },
+  { id: "vignette", label: "Vignette", glyph: "◎", min: 0, max: 1, step: 0.05 },
 ] as const;
 
-export type FilmControlId = (typeof FILM_CONTROLS)[number]['id'];
+export type FilmControlId = (typeof FILM_CONTROLS)[number]["id"];
 
 export function fitFrame(
   widthOverHeight: number,

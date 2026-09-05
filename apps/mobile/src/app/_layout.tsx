@@ -4,15 +4,16 @@ import {
   Rajdhani_600SemiBold,
   Rajdhani_700Bold,
   useFonts,
-} from '@expo-google-fonts/rajdhani';
-import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+} from "@expo-google-fonts/rajdhani";
+import { DarkTheme, Stack, ThemeProvider } from "expo-router";
+import Head from "expo-router/head";
+import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
 
-import { IrisColors } from '@/constants/theme';
+import { IrisColors } from "@/constants/theme";
 
-SplashScreen.preventAutoHideAsync();
+void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 const irisNavigationTheme = {
   ...DarkTheme,
@@ -36,7 +37,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync();
+      void SplashScreen.hideAsync().catch(() => undefined);
     }
   }, [fontError, fontsLoaded]);
 
@@ -44,6 +45,14 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={irisNavigationTheme}>
+      <Head>
+        <title>Iris Camera</title>
+        <meta
+          name="description"
+          content="A private camera with manual controls and original Iris Looks."
+        />
+        <meta name="theme-color" content="#050506" />
+      </Head>
       <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />

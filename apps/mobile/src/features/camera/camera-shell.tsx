@@ -1,472 +1,578 @@
-import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
+import { useState, type ReactNode } from "react";
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
+import { Image } from "expo-image";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ASPECTS,
+  aspectById,
+  fitFrame,
   CameraChrome,
   ChromeFonts,
-  EXPOSURE_MODES,
-  OVERLAYS,
-  WB_PRESETS,
-  ZOOM_STOPS,
-  aspectById,
-  exposureLabel,
-  fitFrame,
   lookById,
-  type AspectId,
-  type ExposureMode,
-  type LookId,
-  type OverlayId,
-  type WbPreset,
-  type ZoomStop,
-} from '@/features/camera/chrome';
+} from "./chrome";
 import {
   AspectRatioIcon,
-  CheckIcon,
-  EllipsisIcon,
-  ExposureModeGlyph,
   GridCellsIcon,
-  MeterTicks,
+  EllipsisIcon,
   SplitLinesIcon,
-} from '@/features/camera/chrome-icons';
-import { GlassPanel } from '@/features/camera/glass-panel';
-import { hapticLight, hapticMedium, hapticSelect, hapticTick } from '@/features/camera/haptics';
-import { FilmWindow } from '@/features/camera/look-artwork';
-import { LookPicker } from '@/features/camera/look-picker';
-import { ViewfinderMock } from '@/features/camera/viewfinder-mock';
+} from "./chrome-icons";
+import { GlassPanel } from "./glass-panel";
+import { FilmWindow } from "./look-artwork";
+import {
+  AUTO,
+  shutterLabel,
+  type Capabilities,
+  type CameraReading,
+  type Preferences,
+} from "./model";
 
-type OpenMenu = 'exposure' | 'aspect' | 'overlay' | 'more' | null;
+export type CameraPanel =
+  | "format"
+  | "flash"
+  | "timer"
+  | "grid"
+  | "level"
+  | "focus"
+  | "look"
+  | "histogram"
+  | "settings"
+  | "library"
+  | "exposure"
+  | "whiteBalance"
+  | "ev";
+type Props = {
+  preferences: Preferences;
+  capabilities: Capabilities;
+  reading: CameraReading;
+  busy: boolean;
+  ready: boolean;
+  countdown: number;
+  reviewing: boolean;
+  count: number;
+  thumbnail?: string;
+  canFlip: boolean;
+  onUpdate: (values: Partial<Preferences>) => void;
+  onPanel: (panel: CameraPanel) => void;
+  onCapture: () => void;
+  onReview: () => void;
+  onSwitch: () => void;
+  preview: ReactNode;
+  feedback: ReactNode;
+  reviewControls: ReactNode;
+};
 
-export function CameraShell() {
-  const router = useRouter();
+export function CameraShell({
+  preferences: p,
+  capabilities: c,
+  reading,
+  busy,
+  ready,
+  countdown,
+  reviewing,
+  count,
+  thumbnail,
+  canFlip,
+  onUpdate,
+  onPanel,
+  onCapture,
+  onReview,
+  onSwitch,
+  preview,
+  feedback,
+  reviewControls,
+}: Props) {
   const insets = useSafeAreaInsets();
-  const [exposureMode, setExposureMode] = useState<ExposureMode>('auto');
-  const [rawEnabled, setRawEnabled] = useState(true);
-  const [aspectId, setAspectId] = useState<AspectId>('3-2');
-  const [overlay, setOverlay] = useState<OverlayId>('thirds');
-  const [zoom, setZoom] = useState<ZoomStop>('2');
-  const [afOn, setAfOn] = useState(true);
-  const [focusAssist, setFocusAssist] = useState(false);
-  const [lookId, setLookId] = useState<LookId>('natural');
-  const [lookPickerOpen, setLookPickerOpen] = useState(false);
-  const [openMenu, setOpenMenu] = useState<OpenMenu>(null);
-  const [flashOn, setFlashOn] = useState(false);
-  const [timerOn, setTimerOn] = useState(false);
-  const [wb, setWb] = useState<WbPreset>('auto');
-  const [evComp, setEvComp] = useState(0.3);
-  const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
-
-  const look = lookById(lookId);
-  const aspect = aspectById(aspectId);
-  const manualChrome = exposureMode !== 'auto';
-
-  const frame = useMemo(() => {
-    if (stageSize.width < 8 || stageSize.height < 8) {
-      return { width: 0, height: 0 };
-    }
-    return fitFrame(aspect.widthOverHeight, stageSize.width, stageSize.height);
-  }, [aspect.widthOverHeight, stageSize.height, stageSize.width]);
-
-  function toggleMenu(menu: Exclude<OpenMenu, null>) {
-    hapticLight();
-    setLookPickerOpen(false);
-    setOpenMenu((current) => (current === menu ? null : menu));
-  }
-
-  function closeOverlays() {
-    hapticLight();
-    setOpenMenu(null);
-    setLookPickerOpen(false);
-  }
-
-  function chooseExposure(mode: ExposureMode) {
-    hapticSelect();
-    setExposureMode(mode);
-    setOpenMenu(null);
-  }
-
-  function openLab() {
-    hapticSelect();
-    setOpenMenu(null);
-    setLookPickerOpen(false);
-    router.push({ pathname: '/lab', params: { look: lookId } });
-  }
-
-  function cycleWb() {
-    hapticSelect();
-    const index = WB_PRESETS.findIndex((preset) => preset.id === wb);
-    const next = WB_PRESETS[(index + 1) % WB_PRESETS.length];
-    if (next) setWb(next.id);
-  }
-
-  const topPad = Math.max(insets.top, 10);
-  const bottomPad = Math.max(insets.bottom, 14);
-
+  const { width, height } = useWindowDimensions();
+  const landscape = width > height;
+  const [menu, setMenu] = useState<"exposure" | "more" | "aspect" | null>(null);
+  const open = (panel: CameraPanel) => {
+    setMenu(null);
+    onPanel(panel);
+  };
+  const [stage, setStage] = useState({ width: 0, height: 0 });
+  const aspect = aspectById(p.framing);
+  const frame = fitFrame(aspect.widthOverHeight, stage.width, stage.height);
+  const manual = p.mode === "MANUAL";
+  const shutterDisabled = (!ready || busy) && !countdown;
+  const selectedState = (selected: boolean) => ({
+    accessibilityState: { selected },
+    ...(Platform.OS === "web" ? { "aria-pressed": selected } : {}),
+  });
+  const menuButton = (label: string, panel: CameraPanel, value?: string) => (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${label}${value ? `, ${value}` : ""}`}
+      disabled={busy}
+      onPress={() => open(panel)}
+      style={styles.menuRow}
+    >
+      <Text style={styles.menuLabel}>{label}</Text>
+      <Text style={styles.menuCaption}>{value}</Text>
+    </Pressable>
+  );
   return (
-    <View style={styles.page}>
-      <View style={[styles.phone, { paddingBottom: bottomPad, paddingTop: topPad }]}>
+    <View style={styles.page} testID="camera-chrome">
+      <View
+        style={[
+          styles.phone,
+          {
+            paddingTop: Math.max(insets.top, 10),
+            paddingBottom: Math.max(insets.bottom, 8),
+            paddingLeft: Math.max(insets.left, 12),
+            paddingRight: Math.max(insets.right, 12),
+          },
+          landscape && { maxWidth: 1100 },
+        ]}
+      >
         <View style={styles.topChrome}>
-          {manualChrome ? (
-            <View style={styles.meterCluster}>
-              <MeterTicks />
-              <View>
-                <Text style={styles.meterValue}>+1.1</Text>
-                <Text style={styles.meterLabel}>METER</Text>
-              </View>
-            </View>
-          ) : (
-            <View style={styles.statusCluster}>
-              {flashOn ? <Text style={styles.statusChip}>FLASH</Text> : null}
-              {timerOn ? <Text style={styles.statusChip}>3s</Text> : null}
-            </View>
-          )}
-
           <Pressable
-            accessibilityLabel="Exposure mode"
-            onPress={() => toggleMenu('exposure')}
-            style={({ pressed }) => [pressed && styles.pressed]}
-            testID="exposure-mode">
-            {manualChrome ? (
-              <GlassPanel style={styles.readoutPill}>
-                <Text style={styles.readoutValue}>377</Text>
-                <Text style={styles.readoutSub}>1/125</Text>
-              </GlassPanel>
-            ) : (
-              <GlassPanel style={styles.autoPill}>
-                <Text style={styles.autoText}>{exposureLabel(exposureMode)}</Text>
-              </GlassPanel>
+            accessibilityRole="button"
+            accessibilityLabel={`Open library, ${count} photos`}
+            disabled={busy}
+            onPress={() => open("library")}
+            style={{ minHeight: 44, justifyContent: "center" }}
+          >
+            <Text style={styles.statusChip}>
+              {reviewing ? "PHOTO LAB" : `${count} FRAMES`}
+            </Text>
+            {p.timer > 0 && (
+              <Text style={styles.statusChip}>{p.timer}s TIMER</Text>
             )}
           </Pressable>
-        </View>
-
-        <View
-          onLayout={(event) => {
-            const { width, height } = event.nativeEvent.layout;
-            setStageSize({ width, height });
-          }}
-          style={styles.stage}>
-          {frame.width > 0 && (
-            <View style={{ height: frame.height, width: frame.width }}>
-              <ViewfinderMock
-                height={frame.height}
-                lookId={lookId}
-                overlay={overlay}
-                width={frame.width}
-              />
-              {!afOn && <FocusScale />}
-              <EvStrip onChange={setEvComp} value={evComp} />
-              <View style={styles.innerToolbar}>
-                <Pressable
-                  accessibilityLabel={`RAW ${rawEnabled ? 'on' : 'off'}`}
-                  accessibilityState={{ selected: rawEnabled }}
-                  onPress={() => {
-                    hapticSelect();
-                    setRawEnabled((value) => !value);
-                  }}
-                  style={({ pressed }) => [styles.flexButton, pressed && styles.pressed]}>
-                  <GlassPanel style={[styles.toolButton, rawEnabled && styles.toolButtonOn]}>
-                    <Text style={[styles.rawText, !rawEnabled && styles.rawTextOff]}>RAW</Text>
-                  </GlassPanel>
-                </Pressable>
-
-                <Pressable
-                  accessibilityLabel={`Aspect ratio ${aspect.label}`}
-                  onPress={() => toggleMenu('aspect')}
-                  style={({ pressed }) => [styles.flexButton, pressed && styles.pressed]}
-                  testID="aspect-button">
-                  <GlassPanel style={styles.toolButton}>
-                    <AspectRatioIcon />
-                  </GlassPanel>
-                </Pressable>
-
-                <Pressable
-                  accessibilityLabel={`Composition overlay ${overlay}`}
-                  onPress={() => toggleMenu('overlay')}
-                  style={({ pressed }) => [styles.flexButton, pressed && styles.pressed]}
-                  testID="overlay-button">
-                  <GlassPanel style={[styles.toolButton, overlay !== 'off' && styles.toolButtonOn]}>
-                    <GridCellsIcon />
-                  </GlassPanel>
-                </Pressable>
-              </View>
-            </View>
-          )}
-        </View>
-
-        <View style={styles.focusRow}>
           <Pressable
-            accessibilityLabel="Focus assist"
-            accessibilityState={{ selected: focusAssist }}
-            onPress={() => {
-              hapticLight();
-              setFocusAssist((value) => !value);
-            }}
-            style={({ pressed }) => [pressed && styles.pressed]}>
-            <GlassPanel style={[styles.circleButton, focusAssist && styles.circleButtonOn]}>
-              <SplitLinesIcon color={focusAssist ? CameraChrome.ink : CameraChrome.white} />
-            </GlassPanel>
-          </Pressable>
-
-          <Pressable
-            accessibilityLabel={afOn ? 'Autofocus on' : 'Autofocus off'}
-            accessibilityState={{ selected: afOn }}
-            onPress={() => {
-              hapticLight();
-              setAfOn((value) => !value);
-            }}
-            style={({ pressed }) => [pressed && styles.pressed]}>
-            <View style={[styles.afButton, !afOn && styles.afButtonOff]}>
-              <Text style={[styles.afText, !afOn && styles.afTextOff]}>{afOn ? 'AF' : 'MF'}</Text>
-            </View>
-          </Pressable>
-
-          <GlassPanel style={styles.zoomPill}>
-            {ZOOM_STOPS.map((stop) => {
-              const selected = zoom === stop;
-              return (
-                <Pressable
-                  accessibilityLabel={`${stop} times zoom`}
-                  accessibilityState={{ selected }}
-                  key={stop}
-                  onPress={() => {
-                    if (stop === zoom) return;
-                    hapticSelect();
-                    setZoom(stop);
-                  }}
-                  style={({ pressed }) => [
-                    styles.zoomStop,
-                    selected && styles.zoomStopSelected,
-                    pressed && styles.pressed,
-                  ]}>
-                  <Text style={[styles.zoomText, selected && styles.zoomTextSelected]}>
-                    {selected ? `${stop}x` : stop}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </GlassPanel>
-
-          <Pressable
-            accessibilityLabel="More controls"
-            onPress={() => toggleMenu('more')}
-            style={({ pressed }) => [pressed && styles.pressed]}
-            testID="more-button">
-            <GlassPanel style={[styles.circleButton, openMenu === 'more' && styles.circleButtonOn]}>
-              <EllipsisIcon color={openMenu === 'more' ? CameraChrome.ink : CameraChrome.white} />
-            </GlassPanel>
-          </Pressable>
-        </View>
-
-        <View style={styles.bottomBar}>
-          <Pressable
-            accessibilityLabel="Open Photo Lab"
-            onPress={openLab}
-            style={({ pressed }) => [styles.thumbWell, pressed && styles.pressed]}
-            testID="recents-thumb">
-            <View style={styles.recentsThumb}>
-              <View style={styles.recentsSky} />
-              <View style={styles.recentsGround} />
-            </View>
-          </Pressable>
-
-          <Pressable
-            accessibilityLabel="Shutter"
             accessibilityRole="button"
-            onPressIn={() => hapticMedium()}
-            style={({ pressed }) => [styles.shutterWell, pressed && styles.shutterPressed]}>
-            <View style={styles.shutterRing}>
-              <View style={styles.shutterInner} />
+            accessibilityLabel="Exposure mode"
+            disabled={busy || reviewing}
+            onPress={() => setMenu(menu === "exposure" ? null : "exposure")}
+            testID="exposure-mode"
+          >
+            <GlassPanel style={manual ? styles.readoutPill : styles.autoPill}>
+              {manual ? (
+                <>
+                  <Text style={styles.readoutValue}>
+                    {Math.round(p.manual.iso ?? reading.iso ?? 0) || "AUTO"}
+                  </Text>
+                  <Text style={styles.readoutSub}>
+                    {shutterLabel(p.manual.shutter ?? reading.shutter)}
+                  </Text>
+                </>
+              ) : (
+                <Text style={styles.autoText}>AUTO</Text>
+              )}
+            </GlassPanel>
+          </Pressable>
+        </View>
+        <View
+          style={{
+            flex: 1,
+            minHeight: 0,
+            flexDirection: landscape ? "row" : "column",
+            gap: landscape ? 16 : 0,
+          }}
+        >
+          <View
+            style={styles.stage}
+            onLayout={(event) => setStage(event.nativeEvent.layout)}
+          >
+            <View
+              style={
+                frame.width > 0 && !reviewing
+                  ? { width: frame.width, height: frame.height }
+                  : { width: "100%", flex: 1 }
+              }
+            >
+              {preview}
+              {!reviewing && (
+                <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Exposure compensation ${p.manual.ev.toFixed(1)}`}
+                    disabled={busy}
+                    onPress={() => open("ev")}
+                    style={[
+                      styles.evStrip,
+                      { padding: 8, minWidth: 44, minHeight: 44 },
+                    ]}
+                  >
+                    <Text style={styles.evValue}>
+                      {p.manual.ev > 0 ? "+" : ""}
+                      {p.manual.ev.toFixed(1)}
+                    </Text>
+                    {[-2, -1, 0, 1, 2].map((value) => (
+                      <View
+                        key={value}
+                        style={[
+                          styles.evTick,
+                          styles.evTickMajor,
+                          Math.abs(value - p.manual.ev) < 0.5 &&
+                            styles.evTickOn,
+                        ]}
+                      />
+                    ))}
+                  </Pressable>
+                  <View style={styles.innerToolbar}>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`FORMAT, ${p.format.toUpperCase()}`}
+                      disabled={busy}
+                      onPress={() => open("format")}
+                      style={styles.flexButton}
+                    >
+                      <GlassPanel
+                        style={[
+                          styles.toolButton,
+                          p.format === "dng" && styles.toolButtonOn,
+                        ]}
+                      >
+                        <Text style={styles.rawText}>
+                          {p.format === "dng" ? "RAW" : p.format.toUpperCase()}
+                        </Text>
+                      </GlassPanel>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Aspect ratio ${aspect.label}`}
+                      disabled={busy}
+                      onPress={() => setMenu("aspect")}
+                      style={styles.flexButton}
+                      testID="aspect-button"
+                    >
+                      <GlassPanel style={styles.toolButton}>
+                        <AspectRatioIcon />
+                      </GlassPanel>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`GRID, ${p.grid.toUpperCase()}`}
+                      disabled={busy}
+                      onPress={() => open("grid")}
+                      style={styles.flexButton}
+                      testID="overlay-button"
+                    >
+                      <GlassPanel
+                        style={[
+                          styles.toolButton,
+                          p.grid !== "off" && styles.toolButtonOn,
+                        ]}
+                      >
+                        <GridCellsIcon />
+                      </GlassPanel>
+                    </Pressable>
+                  </View>
+                </View>
+              )}
             </View>
-          </Pressable>
-
-          <Pressable
-            accessibilityLabel={`${look.name} look`}
-            onPress={() => {
-              hapticLight();
-              setOpenMenu(null);
-              setLookPickerOpen((value) => !value);
-            }}
-            style={({ pressed }) => [styles.thumbWell, pressed && styles.pressed]}
-            testID="look-tile">
-            <FilmWindow look={look} selected={lookPickerOpen} size={56} />
-          </Pressable>
-        </View>
-      </View>
-
-      {openMenu !== null && (
-        <View style={[styles.overlayLayer, styles.passThrough]}>
-          <Pressable onPress={closeOverlays} style={StyleSheet.absoluteFill} />
-          {openMenu === 'exposure' && (
-            <GlassPanel style={[styles.menu, styles.exposureMenu, { top: topPad + 48 }]}>
-              {EXPOSURE_MODES.map((mode) => {
-                const selected = mode.id === exposureMode;
-                return (
+          </View>
+          <View style={[{ minHeight: 0 }, landscape && { width: 310 }]}>
+            <ScrollView
+              style={{
+                maxHeight: reviewing
+                  ? landscape
+                    ? height - 80
+                    : height * 0.38
+                  : landscape
+                    ? height - 240
+                    : height * 0.2,
+              }}
+              contentContainerStyle={{ paddingVertical: 4 }}
+            >
+              {feedback}
+              {reviewControls}
+            </ScrollView>
+            {!reviewing && (
+              <>
+                <View style={styles.focusRow}>
                   <Pressable
-                    accessibilityRole="menuitem"
-                    accessibilityState={{ selected }}
-                    key={mode.id}
-                    onPress={() => chooseExposure(mode.id)}
-                    style={({ pressed }) => [styles.menuRow, pressed && styles.pressed]}
-                    testID={`exposure-${mode.id}`}>
-                    <View style={styles.menuGlyph}>
-                      {selected ? <CheckIcon color={CameraChrome.white} size={16} /> : <ExposureModeGlyph mode={mode.id} />}
+                    accessibilityRole="button"
+                    accessibilityLabel={`LEVEL, ${p.level ? "ON" : "OFF"}`}
+                    disabled={busy}
+                    onPress={() => open("level")}
+                  >
+                    <GlassPanel
+                      style={[
+                        styles.circleButton,
+                        p.level && styles.circleButtonOn,
+                      ]}
+                    >
+                      <SplitLinesIcon
+                        color={p.level ? CameraChrome.ink : CameraChrome.white}
+                      />
+                    </GlassPanel>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`FOCUS, ${p.manual.focus === null ? "AUTO" : "MANUAL"}`}
+                    disabled={busy}
+                    onPress={() => open("focus")}
+                    style={{ minHeight: 44, justifyContent: "center" }}
+                  >
+                    <View
+                      style={[
+                        styles.afButton,
+                        p.manual.focus !== null && styles.afButtonOff,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.afText,
+                          p.manual.focus !== null && styles.afTextOff,
+                        ]}
+                      >
+                        {p.manual.focus === null ? "AF" : "MF"}
+                      </Text>
                     </View>
-                    <Text style={styles.menuLabel}>{mode.label}</Text>
                   </Pressable>
-                );
-              })}
-            </GlassPanel>
-          )}
-
-          {openMenu === 'aspect' && (
-            <GlassPanel style={[styles.menu, styles.centerMenu]}>
-              {ASPECTS.map((item) => {
-                const selected = item.id === aspectId;
-                return (
+                  <GlassPanel style={styles.zoomPill}>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={{ alignItems: "center" }}
+                    >
+                      {c.zoomStops.map((stop) => (
+                        <Pressable
+                          key={stop}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Zoom ${stop} times`}
+                          {...selectedState(Math.abs(p.zoom - stop) < 0.05)}
+                          disabled={busy || !ready}
+                          onPress={() => onUpdate({ zoom: stop })}
+                          style={[
+                            styles.zoomStop,
+                            { minHeight: 44, minWidth: 44 },
+                            Math.abs(p.zoom - stop) < 0.05 &&
+                              styles.zoomStopSelected,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.zoomText,
+                              Math.abs(p.zoom - stop) < 0.05 &&
+                                styles.zoomTextSelected,
+                            ]}
+                          >
+                            {stop}×
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+                  </GlassPanel>
                   <Pressable
-                    accessibilityState={{ selected }}
-                    key={item.id}
-                    onPress={() => {
-                      hapticSelect();
-                      setAspectId(item.id);
-                      setOpenMenu(null);
-                    }}
-                    style={({ pressed }) => [styles.menuRow, pressed && styles.pressed]}>
-                    <Text style={[styles.menuLabel, selected && styles.menuLabelOn]}>
-                      {item.label}
-                    </Text>
-                    <Text style={styles.menuCaption}>{item.caption}</Text>
+                    accessibilityRole="button"
+                    accessibilityLabel="More controls"
+                    disabled={busy}
+                    onPress={() => setMenu(menu === "more" ? null : "more")}
+                    testID="more-button"
+                  >
+                    <GlassPanel style={styles.circleButton}>
+                      <EllipsisIcon />
+                    </GlassPanel>
                   </Pressable>
-                );
-              })}
-            </GlassPanel>
-          )}
-
-          {openMenu === 'overlay' && (
-            <GlassPanel style={[styles.menu, styles.centerMenu]}>
-              {OVERLAYS.map((item) => {
-                const selected = item.id === overlay;
-                return (
+                </View>
+                <View style={styles.bottomBar}>
                   <Pressable
-                    accessibilityState={{ selected }}
-                    key={item.id}
-                    onPress={() => {
-                      hapticSelect();
-                      setOverlay(item.id);
-                      setOpenMenu(null);
-                    }}
-                    style={({ pressed }) => [styles.menuRow, pressed && styles.pressed]}>
-                    <Text style={[styles.menuLabel, selected && styles.menuLabelOn]}>
-                      {item.label}
-                    </Text>
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      thumbnail ? "Review latest photo" : "Open empty library"
+                    }
+                    disabled={busy}
+                    onPress={onReview}
+                    style={styles.thumbWell}
+                    testID="recents-thumb"
+                  >
+                    <View style={styles.recentsThumb}>
+                      {thumbnail ? (
+                        <Image
+                          source={thumbnail}
+                          contentFit="cover"
+                          style={StyleSheet.absoluteFill}
+                        />
+                      ) : (
+                        <Text style={[styles.autoText, { marginTop: 16 }]}>
+                          0
+                        </Text>
+                      )}
+                    </View>
                   </Pressable>
-                );
-              })}
-            </GlassPanel>
-          )}
-
-          {openMenu === 'more' && (
-            <GlassPanel style={[styles.menu, styles.moreMenu]} testID="more-menu">
-              <Pressable
-                onPress={openLab}
-                style={({ pressed }) => [styles.menuRow, pressed && styles.pressed]}
-                testID="more-photo-lab">
-                <Text style={styles.menuLabel}>Photo Lab</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  hapticSelect();
-                  setFlashOn((value) => !value);
-                }}
-                style={({ pressed }) => [styles.menuRow, pressed && styles.pressed]}>
-                <Text style={[styles.menuLabel, flashOn && styles.menuLabelOn]}>
-                  Flash {flashOn ? 'On' : 'Off'}
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  hapticSelect();
-                  setTimerOn((value) => !value);
-                }}
-                style={({ pressed }) => [styles.menuRow, pressed && styles.pressed]}>
-                <Text style={[styles.menuLabel, timerOn && styles.menuLabelOn]}>
-                  Timer {timerOn ? '3s' : 'Off'}
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={cycleWb}
-                style={({ pressed }) => [styles.menuRow, pressed && styles.pressed]}>
-                <Text style={[styles.menuLabel, wb !== 'auto' && styles.menuLabelOn]}>
-                  White Balance
-                </Text>
-                <Text style={styles.menuCaption}>
-                  {WB_PRESETS.find((preset) => preset.id === wb)?.label ?? 'Auto'}
-                </Text>
-              </Pressable>
-              <Text style={styles.menuHint}>Classic chrome stays available later.</Text>
-            </GlassPanel>
-          )}
-        </View>
-      )}
-
-      {lookPickerOpen && (
-        <View style={[styles.overlayLayer, styles.passThrough]}>
-          <Pressable onPress={closeOverlays} style={[StyleSheet.absoluteFill, styles.lookDim]} />
-          <View style={[styles.lookSheetWrap, { paddingBottom: bottomPad }]}>
-            <LookPicker
-              onConfirm={() => setLookPickerOpen(false)}
-              onSelect={setLookId}
-              selectedId={lookId}
-            />
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      countdown ? "Cancel timer" : "Take photo"
+                    }
+                    accessibilityState={{ disabled: !!shutterDisabled, busy }}
+                    disabled={!!shutterDisabled}
+                    onPress={onCapture}
+                    style={({ pressed }) => [
+                      styles.shutterWell,
+                      shutterDisabled && { opacity: 0.4 },
+                      pressed && styles.shutterPressed,
+                    ]}
+                  >
+                    <View style={styles.shutterRing}>
+                      {busy && !countdown ? (
+                        <ActivityIndicator color="white" />
+                      ) : (
+                        <View
+                          style={[
+                            styles.shutterInner,
+                            countdown > 0 && {
+                              width: 24,
+                              height: 24,
+                              borderRadius: 4,
+                            },
+                          ]}
+                        />
+                      )}
+                    </View>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`LOOK, ${p.look.toUpperCase()}`}
+                    disabled={busy}
+                    onPress={() => open("look")}
+                    style={styles.thumbWell}
+                    testID="look-tile"
+                  >
+                    {p.look === "none" ? (
+                      <GlassPanel style={styles.circleButton}>
+                        <Text style={styles.autoText}>OFF</Text>
+                      </GlassPanel>
+                    ) : (
+                      <FilmWindow
+                        look={lookById(p.look)}
+                        selected={false}
+                        size={56}
+                      />
+                    )}
+                  </Pressable>
+                </View>
+              </>
+            )}
           </View>
         </View>
-      )}
-    </View>
-  );
-}
-
-function EvStrip({ value, onChange }: { value: number; onChange: (value: number) => void }) {
-  const stops = [-2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, 2];
-
-  return (
-    <View accessibilityLabel={`Exposure compensation ${value}`} style={styles.evStrip}>
-      <Text style={styles.evValue}>{`${value > 0 ? '+' : ''}${value.toFixed(1)}`}</Text>
-      {stops.map((stop) => {
-        const major = Number.isInteger(stop);
-        const active = Math.abs(value - stop) < 0.26;
-        return (
+      </View>
+      {menu && (
+        <View style={styles.overlayLayer}>
           <Pressable
-            key={stop}
-            onPress={() => {
-              if (stop !== value) hapticTick();
-              onChange(stop);
-            }}
-            style={styles.evTickHit}>
-            <View style={[styles.evTick, major && styles.evTickMajor, active && styles.evTickOn]} />
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
-function FocusScale() {
-  return (
-    <View accessibilityLabel="Manual focus scale" style={styles.focusScale}>
-      <Text style={styles.focusMark}>∞</Text>
-      {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((tick) => (
-        <View key={tick} style={[styles.focusTick, tick === 3 && styles.focusTickOn]} />
-      ))}
-      <Text style={styles.focusMark}>N</Text>
+            accessibilityRole="button"
+            accessibilityLabel="Close camera menu"
+            onPress={() => setMenu(null)}
+            style={StyleSheet.absoluteFill}
+          />
+          <GlassPanel
+            style={[
+              styles.menu,
+              menu === "exposure" ? styles.exposureMenu : styles.moreMenu,
+              {
+                top: Math.max(insets.top, 10) + 48,
+                bottom: Math.max(insets.bottom, 10) + 110,
+                maxWidth: width - 24,
+              },
+            ]}
+          >
+            <ScrollView>
+              {menu === "aspect" ? (
+                <>
+                  {ASPECTS.map((item) => (
+                    <Pressable
+                      key={item.id}
+                      accessibilityRole="button"
+                      {...selectedState(item.id === p.framing)}
+                      disabled={busy}
+                      onPress={() => {
+                        onUpdate({ framing: item.id });
+                        setMenu(null);
+                      }}
+                      style={styles.menuRow}
+                    >
+                      <Text style={styles.menuLabel}>{item.label}</Text>
+                      <Text style={styles.menuCaption}>{item.caption}</Text>
+                    </Pressable>
+                  ))}
+                  <Text style={styles.menuHint}>
+                    Preview framing only. Iris retains the full captured image.
+                  </Text>
+                </>
+              ) : menu === "exposure" ? (
+                <>
+                  <Pressable
+                    accessibilityRole="button"
+                    {...selectedState(!manual)}
+                    disabled={busy}
+                    onPress={() => {
+                      onUpdate({ mode: "PHOTO", manual: AUTO });
+                      setMenu(null);
+                    }}
+                    style={styles.menuRow}
+                  >
+                    <Text style={styles.menuLabel}>Auto</Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    {...selectedState(manual)}
+                    disabled={busy}
+                    onPress={() => {
+                      onUpdate({ mode: "MANUAL" });
+                      open("exposure");
+                    }}
+                    style={styles.menuRow}
+                  >
+                    <Text style={styles.menuLabel}>Manual</Text>
+                  </Pressable>
+                  <Text style={styles.menuHint}>
+                    ISO and shutter lock together on supported cameras.
+                  </Text>
+                </>
+              ) : (
+                <>
+                  {menuButton("Photo Lab", "library")}
+                  {menuButton(
+                    "FLASH",
+                    "flash",
+                    c.flash ? p.flash.toUpperCase() : "N/A",
+                  )}
+                  {menuButton(
+                    "TIMER",
+                    "timer",
+                    p.timer ? `${p.timer}s` : "OFF",
+                  )}
+                  {menuButton("HIST.", "histogram", p.histogram ? "ON" : "OFF")}
+                  {menuButton("White balance", "whiteBalance")}
+                  {menuButton("Exposure", "exposure")}
+                  {menuButton("Settings", "settings")}
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Switch to ${p.facing === "back" ? "front" : "back"} camera`}
+                    disabled={busy || !canFlip}
+                    onPress={() => {
+                      setMenu(null);
+                      onSwitch();
+                    }}
+                    style={[styles.menuRow, !canFlip && { opacity: 0.4 }]}
+                  >
+                    <Text style={styles.menuLabel}>Switch camera</Text>
+                  </Pressable>
+                </>
+              )}
+            </ScrollView>
+          </GlassPanel>
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   page: {
-    alignItems: 'center',
+    alignItems: "center",
     backgroundColor: CameraChrome.ink,
     flex: 1,
   },
@@ -475,26 +581,26 @@ const styles = StyleSheet.create({
     flex: 1,
     maxWidth: 430,
     paddingHorizontal: 12,
-    width: '100%',
+    width: "100%",
   },
   topChrome: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
+    alignItems: "flex-start",
+    flexDirection: "row",
     height: 52,
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
     paddingHorizontal: 4,
   },
   meterCluster: {
-    alignItems: 'center',
-    flexDirection: 'row',
+    alignItems: "center",
+    flexDirection: "row",
     paddingTop: 2,
   },
   meterValue: {
     color: CameraChrome.meterRed,
     fontFamily: ChromeFonts.mono,
     fontSize: 18,
-    fontVariant: ['tabular-nums'],
-    fontWeight: '600',
+    fontVariant: ["tabular-nums"],
+    fontWeight: "600",
     lineHeight: 20,
   },
   meterLabel: {
@@ -505,7 +611,7 @@ const styles = StyleSheet.create({
     lineHeight: 13,
   },
   statusCluster: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
     paddingTop: 8,
   },
@@ -513,11 +619,11 @@ const styles = StyleSheet.create({
     color: CameraChrome.amber,
     fontFamily: ChromeFonts.sans,
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: 1,
   },
   autoPill: {
-    borderCurve: 'continuous',
+    borderCurve: "continuous",
     borderRadius: CameraChrome.radiusPill,
     minHeight: 34,
     minWidth: 72,
@@ -528,13 +634,13 @@ const styles = StyleSheet.create({
     color: CameraChrome.white,
     fontFamily: ChromeFonts.sans,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
     letterSpacing: 1.4,
-    textAlign: 'center',
+    textAlign: "center",
   },
   readoutPill: {
-    alignItems: 'flex-end',
-    borderCurve: 'continuous',
+    alignItems: "flex-end",
+    borderCurve: "continuous",
     borderRadius: 18,
     minWidth: 78,
     paddingHorizontal: 12,
@@ -544,82 +650,82 @@ const styles = StyleSheet.create({
     color: CameraChrome.white,
     fontFamily: ChromeFonts.mono,
     fontSize: 16,
-    fontVariant: ['tabular-nums'],
-    fontWeight: '600',
+    fontVariant: ["tabular-nums"],
+    fontWeight: "600",
     lineHeight: 18,
   },
   readoutSub: {
     color: CameraChrome.muted,
     fontFamily: ChromeFonts.mono,
     fontSize: 12,
-    fontVariant: ['tabular-nums'],
+    fontVariant: ["tabular-nums"],
     lineHeight: 14,
   },
   stage: {
-    alignItems: 'center',
+    alignItems: "center",
     flex: 1,
-    justifyContent: 'center',
-    minHeight: 220,
+    justifyContent: "center",
+    minHeight: 60,
   },
   innerToolbar: {
     bottom: 10,
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
     left: 10,
-    position: 'absolute',
+    position: "absolute",
     right: 10,
   },
   flexButton: {
     flex: 1,
   },
   toolButton: {
-    alignItems: 'center',
-    borderCurve: 'continuous',
+    alignItems: "center",
+    borderCurve: "continuous",
     borderRadius: CameraChrome.radiusButton,
     height: 52,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   toolButtonOn: {
-    borderColor: 'rgba(245, 196, 0, 0.35)',
+    borderColor: "rgba(245, 196, 0, 0.35)",
   },
   rawText: {
     color: CameraChrome.white,
     fontFamily: ChromeFonts.sans,
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: 0.6,
   },
   rawTextOff: {
     color: CameraChrome.muted,
   },
   focusRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
+    alignItems: "center",
+    flexDirection: "row",
     gap: 8,
     marginTop: 10,
   },
   circleButton: {
-    alignItems: 'center',
+    alignItems: "center",
     borderRadius: 22,
     height: 44,
-    justifyContent: 'center',
+    justifyContent: "center",
     width: 44,
   },
   circleButtonOn: {
     backgroundColor: CameraChrome.amber,
   },
   afButton: {
-    alignItems: 'center',
+    alignItems: "center",
     backgroundColor: CameraChrome.amber,
-    borderCurve: 'continuous',
+    borderCurve: "continuous",
     borderRadius: 20,
     height: 36,
-    justifyContent: 'center',
+    justifyContent: "center",
     minWidth: 62,
     paddingHorizontal: 18,
   },
   afButtonOff: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     borderColor: CameraChrome.muted,
     borderWidth: 1.5,
   },
@@ -627,27 +733,27 @@ const styles = StyleSheet.create({
     color: CameraChrome.ink,
     fontFamily: ChromeFonts.sans,
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: "800",
     letterSpacing: 0.4,
   },
   afTextOff: {
     color: CameraChrome.white,
   },
   zoomPill: {
-    alignItems: 'center',
-    borderCurve: 'continuous',
+    alignItems: "center",
+    borderCurve: "continuous",
     borderRadius: CameraChrome.radiusPill,
     flex: 1,
-    flexDirection: 'row',
+    flexDirection: "row",
     height: 48,
-    justifyContent: 'space-evenly',
+    justifyContent: "space-evenly",
     paddingHorizontal: 6,
   },
   zoomStop: {
-    alignItems: 'center',
+    alignItems: "center",
     borderRadius: 16,
     height: 32,
-    justifyContent: 'center',
+    justifyContent: "center",
     minWidth: 32,
   },
   zoomStopSelected: {
@@ -657,55 +763,55 @@ const styles = StyleSheet.create({
     color: CameraChrome.muted,
     fontFamily: ChromeFonts.sans,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   zoomTextSelected: {
     color: CameraChrome.ink,
   },
   bottomBar: {
-    alignItems: 'center',
-    flexDirection: 'row',
+    alignItems: "center",
+    flexDirection: "row",
     height: 104,
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
     paddingHorizontal: 8,
   },
   thumbWell: {
-    alignItems: 'center',
+    alignItems: "center",
     height: 56,
-    justifyContent: 'center',
+    justifyContent: "center",
     width: 56,
   },
   recentsThumb: {
-    backgroundColor: '#2A241E',
-    borderCurve: 'continuous',
+    backgroundColor: "#2A241E",
+    borderCurve: "continuous",
     borderRadius: 14,
     height: 52,
-    overflow: 'hidden',
+    overflow: "hidden",
     width: 52,
   },
   recentsSky: {
-    backgroundColor: '#C56A32',
-    height: '55%',
+    backgroundColor: "#C56A32",
+    height: "55%",
   },
   recentsGround: {
-    backgroundColor: '#1A1410',
+    backgroundColor: "#1A1410",
     flex: 1,
   },
   shutterWell: {
-    alignItems: 'center',
+    alignItems: "center",
     backgroundColor: CameraChrome.shutterWell,
     borderRadius: 42,
     height: 84,
-    justifyContent: 'center',
+    justifyContent: "center",
     width: 84,
   },
   shutterRing: {
-    alignItems: 'center',
-    borderColor: 'rgba(10,10,12,0.28)',
+    alignItems: "center",
+    borderColor: "rgba(10,10,12,0.28)",
     borderRadius: 34,
     borderWidth: 3,
     height: 68,
-    justifyContent: 'center',
+    justifyContent: "center",
     width: 68,
   },
   shutterInner: {
@@ -720,30 +826,30 @@ const styles = StyleSheet.create({
   overlayLayer: {
     bottom: 0,
     left: 0,
-    position: 'absolute',
+    position: "absolute",
     right: 0,
     top: 0,
     zIndex: 20,
   },
   passThrough: {
-    pointerEvents: 'box-none',
+    pointerEvents: "box-none",
   },
   lookDim: {
     backgroundColor: CameraChrome.dim,
   },
   menu: {
-    borderCurve: 'continuous',
+    borderCurve: "continuous",
     borderRadius: 32,
     paddingHorizontal: 18,
     paddingVertical: 12,
-    position: 'absolute',
+    position: "absolute",
   },
   exposureMenu: {
     minWidth: 230,
     right: 16,
   },
   centerMenu: {
-    alignSelf: 'center',
+    alignSelf: "center",
     bottom: 250,
     minWidth: 200,
   },
@@ -753,23 +859,23 @@ const styles = StyleSheet.create({
     right: 16,
   },
   menuRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
+    alignItems: "center",
+    flexDirection: "row",
     gap: 12,
     minHeight: 44,
     paddingVertical: 6,
   },
   menuGlyph: {
-    alignItems: 'center',
+    alignItems: "center",
     height: 22,
-    justifyContent: 'center',
+    justifyContent: "center",
     width: 22,
   },
   menuLabel: {
     color: CameraChrome.white,
     fontFamily: ChromeFonts.sans,
     fontSize: 17,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   menuLabelOn: {
     color: CameraChrome.amber,
@@ -778,7 +884,7 @@ const styles = StyleSheet.create({
     color: CameraChrome.muted,
     fontFamily: ChromeFonts.sans,
     fontSize: 13,
-    marginLeft: 'auto',
+    marginLeft: "auto",
     paddingVertical: 8,
   },
   menuHint: {
@@ -789,11 +895,11 @@ const styles = StyleSheet.create({
     paddingTop: 4,
   },
   evStrip: {
-    alignItems: 'center',
+    alignItems: "center",
     gap: 6,
-    position: 'absolute',
+    position: "absolute",
     right: 10,
-    top: '18%',
+    top: "18%",
   },
   evValue: {
     color: CameraChrome.amber,
@@ -802,13 +908,13 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   evTickHit: {
-    alignItems: 'center',
+    alignItems: "center",
     height: 16,
-    justifyContent: 'center',
+    justifyContent: "center",
     width: 22,
   },
   evTick: {
-    backgroundColor: 'rgba(245,196,0,0.28)',
+    backgroundColor: "rgba(245,196,0,0.28)",
     borderRadius: 1,
     height: 2,
     width: 10,
@@ -821,11 +927,11 @@ const styles = StyleSheet.create({
     width: 18,
   },
   focusScale: {
-    alignItems: 'center',
+    alignItems: "center",
     gap: 7,
     left: 10,
-    position: 'absolute',
-    top: '20%',
+    position: "absolute",
+    top: "20%",
   },
   focusMark: {
     color: CameraChrome.white,
@@ -833,7 +939,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   focusTick: {
-    backgroundColor: 'rgba(255,255,255,0.35)',
+    backgroundColor: "rgba(255,255,255,0.35)",
     height: 1.5,
     width: 10,
   },
@@ -844,7 +950,7 @@ const styles = StyleSheet.create({
   lookSheetWrap: {
     bottom: 0,
     left: 12,
-    position: 'absolute',
+    position: "absolute",
     right: 12,
   },
   pressed: {
