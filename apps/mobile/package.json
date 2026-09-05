@@ -52,9 +52,9 @@
     "vitest": "^5.0.0"
   },
   "scripts": {
-    "dev": "expo start",
+    "dev": "expo start --go",
     "dev-client": "expo start --dev-client",
-    "start": "expo start",
+    "start": "expo start --go",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
     "ios": "expo run:ios",

@@ -71,6 +71,29 @@ describe("durable capture flow", () => {
       records.every((r) => r.sourceUri.startsWith("file:///documents/")),
     ).toBe(true);
   });
+  it("cleans retained files when reading the index fails, keeping the temporary original for retry", async () => {
+    mocks.read.mockRejectedValueOnce(new Error("Index unavailable"));
+    await expect(addCapture(photo, DEFAULTS)).rejects.toThrow(
+      "Index unavailable",
+    );
+    expect(mocks.remove).toHaveBeenCalledTimes(1);
+    expect(mocks.release).not.toHaveBeenCalled();
+    expect(db).toEqual([]);
+  });
+  it("cleans the retained original when copying a RAW thumbnail fails", async () => {
+    mocks.retain
+      .mockResolvedValueOnce("file:///documents/original.dng")
+      .mockRejectedValueOnce(new Error("Disk full"));
+    await expect(
+      addCapture(
+        { ...photo, thumbnailUri: "file:///tmp/preview.jpg" },
+        DEFAULTS,
+      ),
+    ).rejects.toThrow("Disk full");
+    expect(mocks.remove).toHaveBeenCalledWith("file:///documents/original.dng");
+    expect(mocks.release).not.toHaveBeenCalled();
+    expect(db).toEqual([]);
+  });
   it("coalesces repeated save taps into one platform save", async () => {
     const record = await addCapture(photo, DEFAULTS);
     await Promise.all(Array.from({ length: 20 }, () => saveCapture(record)));
@@ -126,7 +149,7 @@ describe("durable capture flow", () => {
   });
   it("never bakes a Look into RAW data", async () => {
     const record = await addCapture({ ...photo, format: "dng" }, DEFAULTS);
-    await expect(restyleCapture(record, "noir", 100)).rejects.toThrow("RAW");
+    await expect(restyleCapture(record, "noir", 100)).rejects.toThrow("DNG");
     expect(mocks.render).not.toHaveBeenCalled();
   });
   it("does not remove files if deleting the index entry fails", async () => {

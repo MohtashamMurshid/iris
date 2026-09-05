@@ -21,7 +21,12 @@ async function capture(page: Page, count = 1) {
   ).toBeEnabled();
 }
 async function openTool(page: Page, name: string) {
-  await page.getByRole("button", { name: new RegExp(`^${name},`) }).click();
+  const button = page.getByRole("button", { name: new RegExp(`^${name},`) });
+  if (!(await button.isVisible()))
+    await page
+      .getByRole("button", { name: "More controls", exact: true })
+      .click();
+  await button.click();
 }
 async function done(page: Page) {
   await page.getByRole("button", { name: "Done", exact: true }).click();
@@ -138,8 +143,10 @@ test("supported tools work and preferences survive restart", async ({
   await expect(
     page.getByRole("button", { name: "Zoom 2 times", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("tab", { name: "MANUAL", exact: true }).click();
-  await page.getByRole("button", { name: "ISO AUTO", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Exposure mode", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Manual", exact: true }).click();
   await expect(
     page.getByText("ISO is automatic on this camera.", { exact: true }),
   ).toBeVisible();
@@ -371,4 +378,36 @@ test("storage failure keeps the captured original available for retry", async ({
   await expect(
     page.getByRole("button", { name: "Back to camera", exact: true }),
   ).toBeVisible();
+});
+
+test("new camera chrome persists aspect framing and exposes the real library", async ({
+  page,
+}) => {
+  await start(page);
+  await expect(page.getByTestId("camera-chrome")).toBeVisible();
+  await expect(
+    page.getByRole("tab", { name: "MANUAL", exact: true }),
+  ).toHaveCount(0);
+  await page.getByTestId("aspect-button").click();
+  await expect(
+    page.getByText(
+      "Preview framing only. Iris retains the full captured image.",
+    ),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "1:1 Square", exact: true }).click();
+  await page.reload();
+  await expect(
+    page.getByRole("button", { name: "Aspect ratio 1:1", exact: true }),
+  ).toBeVisible();
+  await capture(page);
+  await page.goto("/lab");
+  await expect(
+    page.getByText("Your photographs", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      "Your photographs will appear here after your first capture.",
+      { exact: true },
+    ),
+  ).toHaveCount(0);
 });

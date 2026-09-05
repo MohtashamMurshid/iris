@@ -1,3 +1,4 @@
+import { CameraChrome, ChromeFonts } from "./chrome";
 import Slider from "@react-native-community/slider";
 import type { PropsWithChildren } from "react";
 import {
@@ -9,7 +10,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { IrisColors, IrisFonts } from "@/constants/theme";
+import { IrisColors } from "@/constants/theme";
 import type { Range } from "./model";
 export function Sheet({
   title,
@@ -231,9 +232,9 @@ export const ui = StyleSheet.create({
     maxHeight: "85%",
     width: "100%",
     maxWidth: 560,
-    backgroundColor: IrisColors.carbon,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    backgroundColor: CameraChrome.glassFill,
+    borderTopLeftRadius: 44,
+    borderTopRightRadius: 44,
     padding: 20,
     paddingBottom: 30,
     borderWidth: 1,
@@ -248,7 +249,7 @@ export const ui = StyleSheet.create({
   },
   title: {
     color: IrisColors.chalk,
-    fontFamily: IrisFonts.displaySemiBold,
+    fontFamily: ChromeFonts.sans,
     fontSize: 26,
   },
   content: { gap: 20, paddingTop: 18, paddingBottom: 20 },
@@ -257,23 +258,23 @@ export const ui = StyleSheet.create({
     minWidth: 44,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 12,
+    borderRadius: 22,
     borderWidth: 1,
     borderColor: IrisColors.line,
-    backgroundColor: IrisColors.graphite,
+    backgroundColor: CameraChrome.glassFill,
     alignItems: "center",
     justifyContent: "center",
   },
-  selected: { backgroundColor: IrisColors.chalk },
+  selected: { backgroundColor: CameraChrome.amber },
   buttonText: {
     color: IrisColors.chalk,
-    fontFamily: IrisFonts.displaySemiBold,
+    fontFamily: ChromeFonts.sans,
     fontSize: 15,
   },
   row: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
   label: {
     color: IrisColors.chalk,
-    fontFamily: IrisFonts.displaySemiBold,
+    fontFamily: ChromeFonts.sans,
     fontSize: 16,
     flexShrink: 1,
   },

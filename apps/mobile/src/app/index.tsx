@@ -1,7 +1,9 @@
+import { IrisMark } from "@/components/iris-mark";
+import { LookPicker } from "@/features/camera/look-picker";
+import { CameraShell } from "@/features/camera/camera-shell";
 import * as Haptics from "expo-haptics";
 import { Accelerometer } from "expo-sensors";
 import { Image } from "expo-image";
-import { SymbolView, type SymbolViewProps } from "expo-symbols";
 import {
   useCallback,
   useEffect,
@@ -15,14 +17,10 @@ import {
   Linking,
   Platform,
   Pressable,
-  ScrollView,
   Text,
   View,
-  useWindowDimensions,
   type GestureResponderEvent,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { IrisMark } from "@/components/iris-mark";
 import { IrisColors } from "@/constants/theme";
 import { CameraPermissionGate } from "@/features/camera/camera-permission-gate";
 import { awaitCapture } from "@/features/camera/capture-task";
@@ -88,67 +86,14 @@ type Panel =
   | "ev"
   | "saveAgain"
   | null;
-const TOOLS: {
-  id: ToolId;
-  label: string;
-  symbol: SymbolViewProps["name"];
-  fallback: string;
-}[] = [
-  {
-    id: "format",
-    label: "FORMAT",
-    symbol: { ios: "rectangle.compress.vertical", web: "crop_5_4" },
-    fallback: "▣",
-  },
-  {
-    id: "flash",
-    label: "FLASH",
-    symbol: { ios: "bolt", web: "flash_on" },
-    fallback: "ϟ",
-  },
-  {
-    id: "timer",
-    label: "TIMER",
-    symbol: { ios: "timer", web: "timer" },
-    fallback: "◷",
-  },
-  {
-    id: "grid",
-    label: "GRID",
-    symbol: { ios: "grid", web: "grid_3x3" },
-    fallback: "▦",
-  },
-  {
-    id: "level",
-    label: "LEVEL",
-    symbol: { ios: "level", web: "straighten" },
-    fallback: "−",
-  },
-  {
-    id: "focus",
-    label: "FOCUS",
-    symbol: { ios: "viewfinder", web: "center_focus_strong" },
-    fallback: "⌖",
-  },
-  {
-    id: "look",
-    label: "LOOK",
-    symbol: { ios: "camera.filters", web: "filter_vintage" },
-    fallback: "◉",
-  },
-  {
-    id: "histogram",
-    label: "HIST.",
-    symbol: { ios: "waveform.path.ecg", web: "monitoring" },
-    fallback: "▥",
-  },
-];
 const errorText = (error: unknown) =>
   error instanceof Error && error.message
     ? error.message
     : "That action did not complete. Please try again.";
 
-export default function CameraScreen() {
+export default function CameraScreen({
+  initialLibrary = false,
+}: { initialLibrary?: boolean } = {}) {
   const camera = useRef<CameraHandle>(null);
   const [p, setP] = useState<Preferences>(DEFAULTS);
   const pref = useRef(p);
@@ -165,7 +110,7 @@ export default function CameraScreen() {
     AppState.currentState !== "background",
   );
   const [cameraKey, setCameraKey] = useState(0);
-  const [panel, setPanel] = useState<Panel>(null);
+  const [panel, setPanel] = useState<Panel>(initialLibrary ? "library" : null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pendingPhoto, setPendingPhoto] = useState<{
@@ -193,10 +138,9 @@ export default function CameraScreen() {
   const resolveCountdown = useRef<(() => void) | null>(null);
   const mounted = useRef(true);
   const pinch = useRef<{ distance: number; zoom: number } | null>(null);
-  const { width, height } = useWindowDimensions();
-  const landscape = width > height;
   const selected = records.find((r) => r.id === selectedId);
   const newest = records[0];
+
   const shootingActive = foreground && !selected;
   const canFlip = capabilities.devices.some(
     (device) => device.facing !== p.facing,
@@ -469,19 +413,6 @@ export default function CameraScreen() {
       );
     });
   }
-  const toolValues: Record<ToolId, string> = {
-    format: p.format === "dng" ? "RAW" : p.format.toUpperCase(),
-    flash: capabilities.flash ? p.flash.toUpperCase() : "N/A",
-    timer: p.timer ? `${p.timer} SEC` : "OFF",
-    grid: { off: "OFF", thirds: "3 × 3", square: "SQUARE", golden: "GOLDEN" }[
-      p.grid
-    ],
-    level: p.level ? "ON" : "OFF",
-    focus: focus?.locked || p.manual.focus !== null ? "LOCKED" : "AUTO",
-    look: p.look.toUpperCase(),
-    histogram: p.histogram ? "ON" : "OFF",
-  };
-
   if (!hydrated)
     return (
       <View
@@ -515,606 +446,315 @@ export default function CameraScreen() {
     );
 
   return (
-    <View style={styles.page}>
-      <SafeAreaView
-        edges={["top", "bottom", "left", "right"]}
-        style={styles.safeArea}
-      >
-        <View style={[styles.appShell, landscape && { maxWidth: 1100 }]}>
-          <View style={styles.topRail}>
-            <View accessibilityLabel="Iris" style={styles.brandLockup}>
-              <IrisMark size={27} />
-              <Text style={styles.wordmark}>IRIS</Text>
-            </View>
-            <Text style={styles.sessionText}>
-              {selected
-                ? "REVIEW"
-                : !foreground
-                  ? "PAUSED"
-                  : ready
-                    ? p.facing.toUpperCase()
-                    : "STARTING"}
-            </Text>
-            <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
-            >
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Open library, ${records.length} photos`}
-                disabled={busy}
-                onPress={() => setPanel("library")}
-                style={[
-                  styles.counterPill,
-                  { minHeight: 44, justifyContent: "center" },
-                ]}
-              >
-                <Text style={styles.counterText}>
-                  {String(records.length).padStart(2, "0")}
-                </Text>
-                <Text style={styles.counterLabel}>FRAMES</Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Settings"
-                disabled={busy}
-                onPress={() => setPanel("settings")}
+    <View style={{ flex: 1, backgroundColor: "#050506" }}>
+      <CameraShell
+        preferences={p}
+        capabilities={capabilities}
+        reading={reading}
+        busy={busy}
+        ready={ready && !pendingPhoto}
+        countdown={countdown}
+        reviewing={!!selected}
+        count={records.length}
+        thumbnail={newest?.thumbnailUri}
+        onUpdate={update}
+        onPanel={setPanel}
+        onCapture={() => {
+          void capture();
+        }}
+        onReview={() => (newest ? review(newest) : setPanel("library"))}
+        onSwitch={switchFacing}
+        canFlip={canFlip}
+        preview={
+          <Pressable
+            accessibilityLabel={
+              selected ? "Captured photo" : "Live camera preview"
+            }
+            accessibilityHint="Tap to meter, hold to lock, or pinch to zoom"
+            onPress={(event) => focusFrame(event)}
+            onLongPress={(event) => focusFrame(event, true)}
+            onTouchStart={(event) => {
+              const touches = event.nativeEvent.touches;
+              if (touches.length === 2 && !busy && !selected)
+                pinch.current = {
+                  distance: Math.hypot(
+                    touches[0].pageX - touches[1].pageX,
+                    touches[0].pageY - touches[1].pageY,
+                  ),
+                  zoom: p.zoom,
+                };
+            }}
+            onTouchMove={(event) => {
+              const touches = event.nativeEvent.touches;
+              if (pinch.current && touches.length === 2 && !busy) {
+                const distance = Math.hypot(
+                  touches[0].pageX - touches[1].pageX,
+                  touches[0].pageY - touches[1].pageY,
+                );
+                update({
+                  zoom: clamp(
+                    (pinch.current.zoom * distance) /
+                      Math.max(1, pinch.current.distance),
+                    capabilities.zoom.min,
+                    capabilities.zoom.max,
+                  ),
+                });
+              }
+            }}
+            onTouchEnd={() => {
+              pinch.current = null;
+            }}
+            style={{
+              flex: 1,
+              overflow: "hidden",
+              borderRadius: 36,
+              backgroundColor: "#101012",
+            }}
+          >
+            <CameraPermissionGate>
+              <CameraBackend
+                key={cameraKey}
+                ref={camera}
+                preferences={p}
+                active={shootingActive}
+                onReady={onReady}
+                onCapabilities={onCapabilities}
+                onReading={setReading}
+                onError={onCameraError}
+              />
+            </CameraPermissionGate>
+            {selected ? (
+              <Image
+                contentFit="contain"
+                source={
+                  selected.format === "dng"
+                    ? selected.thumbnailUri
+                    : selected.uri
+                }
                 style={{
-                  width: 44,
-                  height: 44,
+                  position: "absolute",
+                  inset: 0,
+                  backgroundColor: IrisColors.opticalBlack,
+                }}
+              />
+            ) : (
+              <>
+                {!!capabilities.id && !cameraError && foreground && (
+                  <>
+                    <Grid type={p.grid} />
+                    {p.level && <Level />}
+                    {p.histogram && <Histogram bins={reading.histogram} />}
+                    {focus && (
+                      <View
+                        pointerEvents="none"
+                        style={[
+                          styles.focusReticle,
+                          { left: focus.x, top: focus.y },
+                        ]}
+                      >
+                        <View style={styles.focusDot} />
+                        {focus.locked && (
+                          <Text
+                            style={{
+                              color: "white",
+                              fontSize: 9,
+                              position: "absolute",
+                              top: 49,
+                            }}
+                          >
+                            LOCKED
+                          </Text>
+                        )}
+                      </View>
+                    )}
+                  </>
+                )}
+              </>
+            )}
+            {countdown > 0 && (
+              <View
+                pointerEvents="none"
+                style={{
+                  position: "absolute",
+                  inset: 0,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <Text style={{ color: IrisColors.chalk, fontSize: 23 }}>
-                  ···
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-          <View
-            style={{
-              flex: 1,
-              flexDirection: landscape ? "row" : "column",
-              minHeight: 0,
-            }}
-          >
-            <Pressable
-              accessibilityLabel={
-                selected ? "Captured photo" : "Live camera preview"
-              }
-              accessibilityHint="Tap to meter, hold to lock, or pinch to zoom"
-              onPress={(event) => focusFrame(event)}
-              onLongPress={(event) => focusFrame(event, true)}
-              onTouchStart={(event) => {
-                const touches = event.nativeEvent.touches;
-                if (touches.length === 2 && !busy && !selected)
-                  pinch.current = {
-                    distance: Math.hypot(
-                      touches[0].pageX - touches[1].pageX,
-                      touches[0].pageY - touches[1].pageY,
-                    ),
-                    zoom: p.zoom,
-                  };
-              }}
-              onTouchMove={(event) => {
-                const touches = event.nativeEvent.touches;
-                if (pinch.current && touches.length === 2 && !busy) {
-                  const distance = Math.hypot(
-                    touches[0].pageX - touches[1].pageX,
-                    touches[0].pageY - touches[1].pageY,
-                  );
-                  update({
-                    zoom: clamp(
-                      (pinch.current.zoom * distance) /
-                        Math.max(1, pinch.current.distance),
-                      capabilities.zoom.min,
-                      capabilities.zoom.max,
-                    ),
-                  });
-                }
-              }}
-              onTouchEnd={() => {
-                pinch.current = null;
-              }}
-              style={[styles.viewfinder, { minHeight: 100 }]}
-            >
-              <CameraPermissionGate>
-                <CameraBackend
-                  key={cameraKey}
-                  ref={camera}
-                  preferences={p}
-                  active={shootingActive}
-                  onReady={onReady}
-                  onCapabilities={onCapabilities}
-                  onReading={setReading}
-                  onError={onCameraError}
-                />
-              </CameraPermissionGate>
-              {selected ? (
-                <Image
-                  contentFit="contain"
-                  source={
-                    selected.format === "dng"
-                      ? selected.thumbnailUri
-                      : selected.uri
-                  }
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    backgroundColor: IrisColors.opticalBlack,
-                  }}
-                />
-              ) : (
-                <>
-                  {!!capabilities.id && !cameraError && foreground && (
-                    <>
-                      <Grid type={p.grid} />
-                      <View
-                        pointerEvents="none"
-                        style={[styles.exposureChip, { top: 12 }]}
-                      >
-                        <Text style={styles.exposureText}>
-                          {p.mode === "MANUAL" && p.manual.shutter !== null
-                            ? `${shutterLabel(p.manual.shutter)} LOCK`
-                            : shutterLabel(reading.shutter)}
-                        </Text>
-                        <View style={styles.exposureDivider} />
-                        <Text style={styles.exposureText}>
-                          {p.mode === "MANUAL" && p.manual.iso !== null
-                            ? `ISO ${Math.round(p.manual.iso)} LOCK`
-                            : reading.iso
-                              ? `ISO ${Math.round(reading.iso)}`
-                              : "AUTO ISO"}
-                        </Text>
-                      </View>
-                      {p.level && <Level />}
-                      {p.histogram && <Histogram bins={reading.histogram} />}
-                      {focus && (
-                        <View
-                          pointerEvents="none"
-                          style={[
-                            styles.focusReticle,
-                            { left: focus.x, top: focus.y },
-                          ]}
-                        >
-                          <View style={styles.focusDot} />
-                          {focus.locked && (
-                            <Text
-                              style={{
-                                color: "white",
-                                fontSize: 9,
-                                position: "absolute",
-                                top: 49,
-                              }}
-                            >
-                              LOCKED
-                            </Text>
-                          )}
-                        </View>
-                      )}
-                      <View style={styles.lensRail}>
-                        {capabilities.zoomStops.map((value) => (
-                          <Pressable
-                            key={value}
-                            accessibilityRole="button"
-                            accessibilityLabel={`Zoom ${value} times`}
-                            {...(Platform.OS === "web"
-                              ? {
-                                  "aria-pressed":
-                                    Math.abs(p.zoom - value) < 0.05,
-                                }
-                              : {})}
-                            accessibilityState={{
-                              selected: Math.abs(p.zoom - value) < 0.05,
-                            }}
-                            disabled={busy || !ready}
-                            onPress={(event) => {
-                              event.stopPropagation();
-                              update({ zoom: value });
-                            }}
-                            style={[
-                              styles.lensButton,
-                              { minWidth: 44, minHeight: 44 },
-                              Math.abs(p.zoom - value) < 0.05 &&
-                                styles.lensButtonSelected,
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.lensText,
-                                Math.abs(p.zoom - value) < 0.05 &&
-                                  styles.lensTextSelected,
-                              ]}
-                            >
-                              {value}×
-                            </Text>
-                          </Pressable>
-                        ))}
-                        <Text style={styles.millimeterLabel}>
-                          {p.zoom.toFixed(1)}×
-                        </Text>
-                      </View>
-                    </>
-                  )}
-                </>
-              )}
-              {countdown > 0 && (
-                <View
-                  pointerEvents="none"
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
+                <Text
+                  accessibilityLiveRegion="assertive"
+                  style={{ color: "white", fontSize: 88, fontWeight: "300" }}
                 >
-                  <Text
-                    accessibilityLiveRegion="assertive"
-                    style={{ color: "white", fontSize: 88, fontWeight: "300" }}
-                  >
-                    {countdown}
-                  </Text>
-                  <Text style={ui.copy}>Tap the shutter to cancel</Text>
-                </View>
-              )}
-              {captureFlash && (
-                <View pointerEvents="none" style={styles.captureFlash} />
-              )}
-            </Pressable>
-            <View
-              style={[
-                styles.controlDeck,
-                landscape && { width: 330, paddingTop: 8 },
-              ]}
-            >
-              <ScrollView
-                contentContainerStyle={{ paddingBottom: 4 }}
-                style={
-                  landscape
-                    ? { flex: 1 }
-                    : { maxHeight: height * 0.51 - (selected ? 0 : 72) }
-                }
+                  {countdown}
+                </Text>
+                <Text style={ui.copy}>Tap the shutter to cancel</Text>
+              </View>
+            )}
+            {captureFlash && (
+              <View pointerEvents="none" style={styles.captureFlash} />
+            )}
+          </Pressable>
+        }
+        feedback={
+          <>
+            {pendingPhoto && (
+              <View style={[ui.row, { marginTop: 10 }]}>
+                <Button
+                  label="Retry keeping photo"
+                  disabled={busy}
+                  onPress={() => {
+                    void run(async () => {
+                      const record = await addCapture(
+                        pendingPhoto.photo,
+                        pendingPhoto.settings,
+                      );
+                      setPendingPhoto(null);
+                      await refresh();
+                      setSelectedId(record.id);
+                      setNotice(
+                        "Original kept. Open Edit Look to apply your selected Look.",
+                      );
+                    });
+                  }}
+                />
+                <Button
+                  label="Share captured original"
+                  disabled={busy}
+                  onPress={() => {
+                    void run(() => sharePhoto(pendingPhoto.photo.sourceUri));
+                  }}
+                />
+              </View>
+            )}
+            {!!notice && (
+              <View
+                accessibilityRole="alert"
+                style={[
+                  styles.errorBanner,
+                  !cameraError &&
+                    !pendingPhoto && {
+                      backgroundColor: IrisColors.ink,
+                      borderColor: IrisColors.line,
+                    },
+                ]}
               >
-                {pendingPhoto && (
-                  <View style={[ui.row, { marginTop: 10 }]}>
+                <Text selectable style={styles.errorText}>
+                  {notice}
+                </Text>
+                <View
+                  style={[ui.row, { justifyContent: "center", marginTop: 5 }]}
+                >
+                  {cameraError && (
                     <Button
-                      label="Retry keeping photo"
+                      label="Retry camera"
                       disabled={busy}
                       onPress={() => {
-                        void run(async () => {
-                          const record = await addCapture(
-                            pendingPhoto.photo,
-                            pendingPhoto.settings,
-                          );
-                          setPendingPhoto(null);
-                          await refresh();
-                          setSelectedId(record.id);
-                          setNotice(
-                            "Original kept. Open Edit Look to apply your selected Look.",
-                          );
-                        });
+                        setNotice(null);
+                        setReady(false);
+                        setCameraError(false);
+                        setCameraKey((v) => v + 1);
                       }}
                     />
-                    <Button
-                      label="Share captured original"
-                      disabled={busy}
-                      onPress={() => {
-                        void run(() =>
-                          sharePhoto(pendingPhoto.photo.sourceUri),
-                        );
-                      }}
-                    />
-                  </View>
-                )}
-                {!!notice && (
-                  <View
-                    accessibilityRole="alert"
-                    style={[
-                      styles.errorBanner,
-                      !cameraError &&
-                        !pendingPhoto && {
-                          backgroundColor: IrisColors.ink,
-                          borderColor: IrisColors.line,
-                        },
-                    ]}
-                  >
-                    <Text selectable style={styles.errorText}>
-                      {notice}
-                    </Text>
-                    <View
-                      style={[
-                        ui.row,
-                        { justifyContent: "center", marginTop: 5 },
-                      ]}
-                    >
-                      {cameraError && (
-                        <Button
-                          label="Retry camera"
-                          disabled={busy}
-                          onPress={() => {
-                            setNotice(null);
-                            setReady(false);
-                            setCameraError(false);
-                            setCameraKey((v) => v + 1);
-                          }}
-                        />
-                      )}
-                      <Button label="Dismiss" onPress={() => setNotice(null)} />
-                    </View>
-                  </View>
-                )}
-                {selected ? (
-                  <>
-                    <View style={[ui.heading, { paddingVertical: 12 }]}>
-                      <Button
-                        label="Back to camera"
-                        onPress={returnToCamera}
-                        disabled={busy}
-                      />
-                      <Text style={ui.label}>
-                        {selected.format === "dng"
-                          ? "RAW · UNBAKED"
-                          : selected.look.toUpperCase()}
-                      </Text>
-                    </View>
-                    <View style={ui.row}>
-                      <Button
-                        label={
-                          selected.saved
-                            ? "Saved"
-                            : Platform.OS === "web"
-                              ? "Download"
-                              : "Save to Photos"
-                        }
-                        disabled={busy || selected.saved}
-                        onPress={() => saveReview()}
-                      />
-                      <Button
-                        label="Share"
-                        disabled={busy}
-                        onPress={() => {
-                          void run(() => sharePhoto(selected.uri));
-                        }}
-                      />
-                      <Button
-                        label={selected.favorite ? "Favorited" : "Favorite"}
-                        selected={selected.favorite}
-                        disabled={busy}
-                        onPress={() => {
-                          void run(async () => {
-                            await updateCapture(selected.id, {
-                              favorite: !selected.favorite,
-                            });
-                            await refresh();
-                          });
-                        }}
-                      />
-                      <Button
-                        label="Edit Look"
-                        disabled={busy || selected.format === "dng"}
-                        onPress={() => {
-                          setEditLook(selected.requestedLook);
-                          setEditIntensity(selected.requestedIntensity);
-                          setPanel("editLook");
-                        }}
-                      />
-                      <Button
-                        label="Info"
-                        disabled={busy}
-                        onPress={() => setPanel("metadata")}
-                      />
-                      <Button
-                        label="Delete"
-                        danger
-                        disabled={busy}
-                        onPress={() => setPanel("delete")}
-                      />
-                    </View>
-                    {selected.requestedLook !== selected.look &&
-                      selected.format !== "dng" && (
-                        <Text style={[ui.copy, { marginTop: 10 }]}>
-                          The original is safe. Open Edit Look to retry{" "}
-                          {selected.requestedLook}.
-                        </Text>
-                      )}
-                    <View style={[ui.heading, { marginVertical: 10 }]}>
-                      <Button
-                        label="Previous photo"
-                        disabled={
-                          busy ||
-                          records.indexOf(selected) >= records.length - 1
-                        }
-                        onPress={() =>
-                          review(records[records.indexOf(selected) + 1])
-                        }
-                      />
-                      <Button
-                        label="Next photo"
-                        disabled={busy || records.indexOf(selected) === 0}
-                        onPress={() =>
-                          review(records[records.indexOf(selected) - 1])
-                        }
-                      />
-                    </View>
-                  </>
-                ) : (
-                  <>
-                    <View style={styles.modeTabs}>
-                      {(["PHOTO", "MANUAL"] as const).map((value) => (
-                        <Pressable
-                          key={value}
-                          accessibilityRole="tab"
-                          aria-selected={p.mode === value}
-                          accessibilityState={{ selected: p.mode === value }}
-                          disabled={busy}
-                          onPress={() => {
-                            update({
-                              mode: value,
-                              manual: value === "PHOTO" ? AUTO : p.manual,
-                            });
-                            setFocus(null);
-                          }}
-                          style={styles.modeTab}
-                        >
-                          <Text
-                            style={[
-                              styles.modeText,
-                              p.mode === value && styles.modeTextSelected,
-                            ]}
-                          >
-                            {value}
-                          </Text>
-                          {p.mode === value && <View style={styles.modeRule} />}
-                        </Pressable>
-                      ))}
-                    </View>
-                    {p.mode === "MANUAL" && (
-                      <ScrollView
-                        horizontal
-                        contentContainerStyle={{ gap: 6, paddingTop: 8 }}
-                        showsHorizontalScrollIndicator={false}
-                      >
-                        <Button
-                          label={`ISO ${p.manual.iso === null ? "AUTO" : Math.round(p.manual.iso)}`}
-                          disabled={busy}
-                          onPress={() => setPanel("exposure")}
-                        />
-                        <Button
-                          label={shutterLabel(p.manual.shutter)}
-                          disabled={busy}
-                          onPress={() => setPanel("exposure")}
-                        />
-                        <Button
-                          label={`WB ${p.manual.temperature === null ? "AUTO" : Math.round(p.manual.temperature) + "K"}`}
-                          disabled={busy}
-                          onPress={() => setPanel("whiteBalance")}
-                        />
-                        <Button
-                          label={`EV ${p.manual.ev.toFixed(1)}`}
-                          disabled={busy}
-                          onPress={() => setPanel("ev")}
-                        />
-                      </ScrollView>
-                    )}
-                    <View style={styles.toolGrid}>
-                      {TOOLS.map((tool) => (
-                        <Pressable
-                          key={tool.id}
-                          accessibilityRole="button"
-                          accessibilityLabel={`${tool.label}, ${toolValues[tool.id]}`}
-                          disabled={busy}
-                          onPress={() => setPanel(tool.id)}
-                          style={({ pressed }) => [
-                            styles.tool,
-                            !["OFF", "N/A"].includes(toolValues[tool.id]) &&
-                              styles.toolActive,
-                            pressed && styles.toolPressed,
-                          ]}
-                        >
-                          <SymbolView
-                            fallback={
-                              <Text style={styles.symbolFallback}>
-                                {tool.fallback}
-                              </Text>
-                            }
-                            name={tool.symbol}
-                            size={19}
-                            tintColor={IrisColors.chalk}
-                            weight="light"
-                          />
-                          <Text numberOfLines={1} style={styles.toolValue}>
-                            {toolValues[tool.id]}
-                          </Text>
-                          <Text style={styles.toolLabel}>{tool.label}</Text>
-                        </Pressable>
-                      ))}
-                    </View>
-                  </>
-                )}
-              </ScrollView>
-              {!selected && (
-                <View style={styles.captureRail}>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      newest ? "Review latest photo" : "Open photo library"
-                    }
-                    disabled={busy}
-                    onPress={() =>
-                      newest ? review(newest) : setPanel("library")
-                    }
-                    style={[styles.lookControl, { minHeight: 44 }]}
-                  >
-                    <View style={styles.lookSwatch}>
-                      {newest && (
-                        <Image
-                          contentFit="cover"
-                          source={newest.thumbnailUri}
-                          style={{ position: "absolute", inset: 0 }}
-                        />
-                      )}
-                    </View>
-                    <View>
-                      <Text style={styles.lookLabel}>
-                        {newest ? "LAST SHOT" : "IRIS LOOK"}
-                      </Text>
-                      <Text style={styles.lookValue}>
-                        {newest ? "REVIEW" : p.look.toUpperCase()}
-                      </Text>
-                    </View>
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      countdown ? "Cancel timer" : "Take photo"
-                    }
-                    accessibilityState={{
-                      busy,
-                      disabled:
-                        (!ready || busy || !!pendingPhoto) && !countdown,
-                    }}
-                    disabled={(!ready || busy || !!pendingPhoto) && !countdown}
-                    onPress={() => {
-                      void capture();
-                    }}
-                    style={({ pressed }) => [
-                      styles.shutterOuter,
-                      (!ready || busy) && !countdown && styles.shutterDisabled,
-                      pressed && styles.shutterPressed,
-                    ]}
-                  >
-                    {busy && !countdown ? (
-                      <ActivityIndicator color={IrisColors.chalk} />
-                    ) : (
-                      <View
-                        style={[
-                          styles.shutterInner,
-                          countdown > 0 && {
-                            width: 22,
-                            height: 22,
-                            borderRadius: 4,
-                          },
-                        ]}
-                      />
-                    )}
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`Switch to ${p.facing === "back" ? "front" : "back"} camera`}
-                    disabled={busy}
-                    onPress={switchFacing}
-                    style={[styles.flipButton, { minHeight: 44, minWidth: 44 }]}
-                  >
-                    <Text style={{ color: IrisColors.chalk, fontSize: 26 }}>
-                      ↻
-                    </Text>
-                  </Pressable>
+                  )}
+                  <Button label="Dismiss" onPress={() => setNotice(null)} />
                 </View>
-              )}
-            </View>
-          </View>
-        </View>
-      </SafeAreaView>
+              </View>
+            )}
+          </>
+        }
+        reviewControls={
+          selected ? (
+            <>
+              <View style={[ui.heading, { paddingVertical: 12 }]}>
+                <Button
+                  label="Back to camera"
+                  onPress={returnToCamera}
+                  disabled={busy}
+                />
+                <Text style={ui.label}>
+                  {selected.format === "dng"
+                    ? "DNG · ORIGINAL"
+                    : selected.look.toUpperCase()}
+                </Text>
+              </View>
+              <View style={ui.row}>
+                <Button
+                  label={
+                    selected.saved
+                      ? "Saved"
+                      : Platform.OS === "web"
+                        ? "Download"
+                        : "Save to Photos"
+                  }
+                  disabled={busy || selected.saved}
+                  onPress={() => saveReview()}
+                />
+                <Button
+                  label="Share"
+                  disabled={busy}
+                  onPress={() => {
+                    void run(() => sharePhoto(selected.uri));
+                  }}
+                />
+                <Button
+                  label={selected.favorite ? "Favorited" : "Favorite"}
+                  selected={selected.favorite}
+                  disabled={busy}
+                  onPress={() => {
+                    void run(async () => {
+                      await updateCapture(selected.id, {
+                        favorite: !selected.favorite,
+                      });
+                      await refresh();
+                    });
+                  }}
+                />
+                <Button
+                  label="Edit Look"
+                  disabled={busy || selected.format === "dng"}
+                  onPress={() => {
+                    setEditLook(selected.requestedLook);
+                    setEditIntensity(selected.requestedIntensity);
+                    setPanel("editLook");
+                  }}
+                />
+                <Button
+                  label="Info"
+                  disabled={busy}
+                  onPress={() => setPanel("metadata")}
+                />
+                <Button
+                  label="Delete"
+                  danger
+                  disabled={busy}
+                  onPress={() => setPanel("delete")}
+                />
+              </View>
+              {selected.requestedLook !== selected.look &&
+                selected.format !== "dng" && (
+                  <Text style={[ui.copy, { marginTop: 10 }]}>
+                    The original is safe. Open Edit Look to retry{" "}
+                    {selected.requestedLook}.
+                  </Text>
+                )}
+              <View style={[ui.heading, { marginVertical: 10 }]}>
+                <Button
+                  label="Previous photo"
+                  disabled={
+                    busy || records.indexOf(selected) >= records.length - 1
+                  }
+                  onPress={() => review(records[records.indexOf(selected) + 1])}
+                />
+                <Button
+                  label="Next photo"
+                  disabled={busy || records.indexOf(selected) === 0}
+                  onPress={() => review(records[records.indexOf(selected) - 1])}
+                />
+              </View>
+            </>
+          ) : null
+        }
+      />
 
       {panel && (
         <Sheet
@@ -1158,7 +798,7 @@ export default function CameraScreen() {
               />
               <Text style={ui.copy}>
                 {p.format === "dng"
-                  ? "RAW keeps unprocessed sensor data. The live Look is a preview and is not baked into your DNG."
+                  ? "Iris keeps the original DNG without adding a Look. On supported iPhones this may be Apple ProRAW, which includes Apple processing."
                   : "The selected Look is applied at full resolution. Iris retains the original for later edits."}
               </Text>
               <Text style={ui.copy}>
@@ -1254,24 +894,12 @@ export default function CameraScreen() {
           )}
           {(panel === "look" || panel === "editLook") && (
             <>
-              <Options
-                value={panel === "look" ? p.look : editLook}
-                values={LOOKS.map((look) => ({
-                  value: look.id,
-                  label: look.name,
-                }))}
-                onChange={(look) =>
+              <LookPicker
+                selectedId={panel === "look" ? p.look : editLook}
+                onSelect={(look) =>
                   panel === "look" ? update({ look }) : setEditLook(look)
                 }
               />
-              <Text style={ui.copy}>
-                {
-                  LOOKS.find(
-                    (look) =>
-                      look.id === (panel === "look" ? p.look : editLook),
-                  )?.description
-                }
-              </Text>
               <Dial
                 label="Intensity"
                 range={{ min: 0, max: 100, step: 1 }}
@@ -1620,7 +1248,8 @@ export default function CameraScreen() {
               </Text>
               <Text style={ui.copy}>
                 Choose a Look before capture, or change it later from the photo
-                viewer. RAW keeps the sensor data unbaked.
+                viewer. Iris adds no Look to DNG files. Apple processing may
+                still be present.
               </Text>
               <Button label="Start shooting" onPress={closePanel} />
             </>

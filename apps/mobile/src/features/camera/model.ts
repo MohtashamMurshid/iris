@@ -1,11 +1,6 @@
 export type PhotoFormat = "jpeg" | "heic" | "dng";
 export type LookId =
-  | "none"
-  | "natural"
-  | "daylight"
-  | "noir"
-  | "chrome"
-  | "faded";
+  "none" | "natural" | "daylight" | "noir" | "chrome" | "faded";
 export type ManualSettings = {
   iso: number | null;
   shutter: number | null;
@@ -23,6 +18,7 @@ export type Preferences = {
   format: PhotoFormat;
   flash: "off" | "auto" | "on";
   timer: 0 | 3 | 10;
+  framing: "3-2" | "1-1" | "65-24" | "ig";
   grid: "off" | "thirds" | "square" | "golden";
   level: boolean;
   histogram: boolean;
@@ -50,6 +46,7 @@ export const DEFAULTS: Preferences = {
   format: "heic",
   flash: "off",
   timer: 0,
+  framing: "3-2",
   grid: "thirds",
   level: false,
   histogram: false,
@@ -144,6 +141,7 @@ export function validatePreferences(value: unknown): Preferences {
     format: choose(p.format, ["jpeg", "heic", "dng"], "heic"),
     flash: choose(p.flash, ["off", "auto", "on"], "off"),
     timer: choose(p.timer, [0, 3, 10], 0),
+    framing: choose(p.framing, ["3-2", "1-1", "65-24", "ig"], "3-2"),
     grid: choose(p.grid, ["off", "thirds", "square", "golden"], "thirds"),
     level: p.level === true,
     histogram: p.histogram === true,

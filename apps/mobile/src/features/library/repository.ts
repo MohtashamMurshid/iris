@@ -31,28 +31,31 @@ export const addCapture = (photo: CaptureResult, p: Preferences) =>
   transaction(async () => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     const sourceUri = await retainFile(photo.sourceUri, id, "original");
-    const thumbnailUri =
-      photo.thumbnailUri === photo.sourceUri
-        ? sourceUri
-        : await retainFile(photo.thumbnailUri, id, "thumbnail");
-    const record: CaptureRecord = {
-      ...photo,
-      id,
-      sourceUri,
-      uri: sourceUri,
-      thumbnailUri,
-      createdAt: Date.now(),
-      look: "none",
-      intensity: 0,
-      recipeVersion: 1,
-      favorite: false,
-      saved: false,
-      requestedLook: p.look,
-      requestedIntensity: p.intensity,
-    };
-    const records = await readRecords();
+    let thumbnailUri = sourceUri;
     try {
+      if (photo.thumbnailUri !== photo.sourceUri)
+        thumbnailUri = await retainFile(photo.thumbnailUri, id, "thumbnail");
+      const record: CaptureRecord = {
+        ...photo,
+        id,
+        sourceUri,
+        uri: sourceUri,
+        thumbnailUri,
+        createdAt: Date.now(),
+        look: "none",
+        intensity: 0,
+        recipeVersion: 1,
+        favorite: false,
+        saved: false,
+        requestedLook: p.look,
+        requestedIntensity: p.intensity,
+      };
+      const records = await readRecords();
       await writeRecords([record, ...records]);
+      await releaseTemporary(photo.sourceUri).catch(() => undefined);
+      if (photo.thumbnailUri !== photo.sourceUri)
+        await releaseTemporary(photo.thumbnailUri).catch(() => undefined);
+      return record;
     } catch (error) {
       // Keep the incoming temporary file available for the recovery action.
       await removeFile(sourceUri).catch(() => undefined);
@@ -60,10 +63,6 @@ export const addCapture = (photo: CaptureResult, p: Preferences) =>
         await removeFile(thumbnailUri).catch(() => undefined);
       throw error;
     }
-    await releaseTemporary(photo.sourceUri).catch(() => undefined);
-    if (photo.thumbnailUri !== photo.sourceUri)
-      await releaseTemporary(photo.thumbnailUri).catch(() => undefined);
-    return record;
   });
 export async function restyleCapture(
   record: CaptureRecord,
@@ -72,7 +71,7 @@ export async function restyleCapture(
 ) {
   if (record.format === "dng")
     throw new Error(
-      "RAW sensor data stays unprocessed. Choose JPEG or HEIC to bake in a Look.",
+      "Iris keeps the original DNG without baking in a Look. Choose JPEG or HEIC to apply a Look.",
     );
   const result =
     look === "none" || intensity === 0
