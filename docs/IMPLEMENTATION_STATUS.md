@@ -20,7 +20,7 @@ The newer camera chrome from main now connects to the native camera pipeline on 
 
 ## Automated validation
 
-On September 5, 2026, lint, type checking, 19 logic tests, both web builds, the iOS JavaScript export, iOS project generation and Expo dependency checks passed. All 10 browser tests also passed against the exported production app, including the 100-capture test. Native Swift compilation and physical-iPhone QA were not run.
+On September 5, 2026, lint, type checking, 45 logic tests, both web builds, the iOS JavaScript export, iOS project generation and Expo dependency checks passed. All 12 browser tests also passed against the exported production app, including the 100-capture test. Native Swift compilation and physical-iPhone QA were not run.
 
 Run from the repository root:
 
@@ -74,3 +74,19 @@ The remaining npm audit reports are `image-size` (and Metro dependents) and `dec
 The newer UI is connected to the working capture and library flow. Placeholder sensor readings, fake photos and unsupported priority-mode actions are not used by the camera screen. The native controller locks ISO and shutter together; its exposure menu therefore offers Auto and Manual. The aspect menu explicitly describes preview framing, which preserves the full-resolution original.
 
 Review also added cleanup of retained files when thumbnail copying or reading the library index fails. Incoming temporary originals remain available for retry. Successfully retained captures and rendered Looks release their temporary files from both Expo’s cache and Apple’s separate temporary directory; the native cleanup method is restricted to regular files within the app’s temporary directory.
+
+## PR review fixes
+
+All nine actionable findings from the CodeRabbit review of `9b735cf` were checked against the integrated code:
+
+- Commit the AVFoundation session configuration before reading RAW formats.
+- Remove unused starter tab components that still advertised Explore; the camera stack uses the newer UI.
+- Clamp browser exposure compensation against the track's actual range.
+- Keep the imperative camera controller as the sole native zoom owner.
+- Decode every persisted capture field consistently on both platforms. Reject a damaged index without silently dropping records or overwriting the stored data.
+- Await SDK 57's asynchronous file copy before releasing its source; test both delayed completion and rejection.
+- Keep browser downloads repeatable because a click cannot confirm download completion. Only native Photos saves set the confirmed saved flag.
+- Persist deletion intent before removing files. A failed cleanup retains a visible, retryable record and reports the failure.
+- Recover malformed preference JSON to defaults while propagating storage read failures to the startup recovery screen.
+
+The preference-write nit was also addressed with a trailing debounce and a flush when leaving/backgrounding the screen. Regression coverage includes failed downloads, corrupt indexes, partial deletions, copy completion, and storage-read errors.

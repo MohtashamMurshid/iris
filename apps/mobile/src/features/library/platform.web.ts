@@ -1,3 +1,4 @@
+export const confirmsSave = false;
 export async function saveToPhotos(uri: string) {
   const anchor = document.createElement("a");
   anchor.href = uri;
@@ -5,7 +6,8 @@ export async function saveToPhotos(uri: string) {
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
-  return "download";
+  // Browsers cannot confirm that a download finished or was accepted.
+  return undefined;
 }
 export async function sharePhoto(uri: string) {
   const blob = await (await fetch(uri)).blob();

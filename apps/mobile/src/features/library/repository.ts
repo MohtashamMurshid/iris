@@ -1,6 +1,6 @@
 import { readRecords, writeRecords } from "./database";
 import { removeFile, retainFile, releaseTemporary } from "./files";
-import { saveToPhotos } from "./platform";
+import { saveToPhotos, confirmsSave } from "./platform";
 import { renderLook } from "../looks/render";
 import type {
   CaptureRecord,
@@ -69,6 +69,8 @@ export async function restyleCapture(
   look: LookId,
   intensity: number,
 ) {
+  if (record.deletionPending)
+    throw new Error("Deletion is pending. Retry deleting this photograph.");
   if (record.format === "dng")
     throw new Error(
       "Iris keeps the original DNG without baking in a Look. Choose JPEG or HEIC to apply a Look.",
@@ -109,13 +111,23 @@ export function saveCapture(
   const work = (async () => {
     const current = (await loadCaptures()).find((r) => r.id === record.id);
     if (!current) throw new Error("This photo is no longer in Iris.");
+    if (current.deletionPending)
+      throw new Error("Deletion is pending. Retry deleting this photograph.");
+    if (!confirmsSave) {
+      await saveToPhotos(current.uri);
+      return updateCapture(current.id, {
+        saved: false,
+        savePending: false,
+        assetId: undefined,
+      });
+    }
     if (current.saved) return current;
     if (current.savePending && !retryUncertain)
       throw new Error(
         "A previous save was interrupted. Check Photos before retrying to avoid a duplicate.",
       );
     await updateCapture(record.id, { savePending: true });
-    let assetId: string;
+    let assetId: string | undefined;
     try {
       assetId = await saveToPhotos(current.uri);
     } catch (error) {
@@ -135,11 +147,25 @@ export function saveCapture(
 export const deleteCapture = (record: CaptureRecord) =>
   transaction(async () => {
     const records = await readRecords();
-    await writeRecords(records.filter((r) => r.id !== record.id));
-    for (const uri of new Set([
-      record.sourceUri,
-      record.uri,
-      record.thumbnailUri,
-    ]))
-      await removeFile(uri).catch(() => undefined);
+    const current = records.find((item) => item.id === record.id);
+    if (!current) return;
+    // Persist the intent first. Any partial cleanup remains visible and retryable.
+    await writeRecords(
+      records.map((item) =>
+        item.id === current.id ? { ...item, deletionPending: true } : item,
+      ),
+    );
+    try {
+      for (const uri of new Set([
+        current.sourceUri,
+        current.uri,
+        current.thumbnailUri,
+      ]))
+        await removeFile(uri);
+      await writeRecords(records.filter((item) => item.id !== current.id));
+    } catch {
+      throw new Error(
+        "Deletion could not finish. Some files may already be removed. Retry deleting this photograph to finish cleanup.",
+      );
+    }
   });

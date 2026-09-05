@@ -399,7 +399,6 @@ export function CameraBackend({
       outputs={outputs}
       isActive={active}
       orientationSource="device"
-      zoom={device.minZoom}
       style={StyleSheet.absoluteFill}
       targetResolution={{ width: 1280, height: 720 }}
       enablePreviewSizedOutputBuffers

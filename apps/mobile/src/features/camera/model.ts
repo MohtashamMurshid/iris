@@ -112,6 +112,7 @@ export type CaptureRecord = CaptureResult & {
   saved: boolean;
   assetId?: string;
   savePending?: boolean;
+  deletionPending?: boolean;
   requestedLook: LookId;
   requestedIntensity: number;
 };

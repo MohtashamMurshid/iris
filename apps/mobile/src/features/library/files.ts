@@ -11,7 +11,7 @@ export async function retainFile(uri: string, id: string, role: string) {
   const destination = new File(root, `${id}-${role}${extension}`);
   if (source.uri === destination.uri) return source.uri;
   try {
-    source.copy(destination);
+    await source.copy(destination);
   } catch (error) {
     if (destination.exists) destination.delete();
     throw error;

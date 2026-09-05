@@ -1,3 +1,4 @@
+import { decodeRecords } from "./decode";
 import type { CaptureRecord } from "../camera/model";
 let dbPromise: Promise<IDBDatabase> | undefined;
 function database() {
@@ -23,7 +24,15 @@ export async function readRecords(): Promise<CaptureRecord[]> {
       .transaction("library")
       .objectStore("library")
       .get("captures");
-    request.onsuccess = () => resolve(request.result ?? []);
+    request.onsuccess = () => {
+      try {
+        resolve(
+          decodeRecords(request.result === undefined ? [] : request.result),
+        );
+      } catch (error) {
+        reject(error);
+      }
+    };
     request.onerror = () => reject(request.error);
   });
 }

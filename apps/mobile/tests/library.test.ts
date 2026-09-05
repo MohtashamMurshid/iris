@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   remove: vi.fn(),
   retain: vi.fn(),
   release: vi.fn(),
+  confirms: true,
 }));
 vi.mock("../src/features/library/database", () => ({
   readRecords: mocks.read,
@@ -29,6 +30,9 @@ vi.mock("../src/features/library/files", () => ({
 }));
 vi.mock("../src/features/library/platform", () => ({
   saveToPhotos: mocks.save,
+  get confirmsSave() {
+    return mocks.confirms;
+  },
 }));
 vi.mock("../src/features/looks/render", () => ({ renderLook: mocks.render }));
 const photo = {
@@ -44,6 +48,7 @@ let db: CaptureRecord[];
 beforeEach(() => {
   vi.resetAllMocks();
   db = [];
+  mocks.confirms = true;
   mocks.read.mockImplementation(async () => structuredClone(db));
   mocks.write.mockImplementation(async (records) => {
     db = structuredClone(records);
@@ -159,4 +164,38 @@ describe("durable capture flow", () => {
     expect(mocks.remove).not.toHaveBeenCalled();
     expect(await loadCaptures()).toHaveLength(1);
   });
+});
+
+it("keeps web downloads repeatable because the browser cannot confirm completion", async () => {
+  mocks.confirms = false;
+  mocks.save.mockResolvedValue(undefined);
+  const record = await addCapture(photo, DEFAULTS);
+  await saveCapture(record);
+  await saveCapture(record);
+  expect(mocks.save).toHaveBeenCalledTimes(2);
+  expect(db[0]).toMatchObject({ saved: false, savePending: false });
+});
+it("keeps a deletion-pending record when file cleanup fails and permits retry", async () => {
+  const record = await addCapture(photo, DEFAULTS);
+  mocks.remove.mockRejectedValueOnce(new Error("File locked"));
+  await expect(deleteCapture(record)).rejects.toThrow(
+    "Deletion could not finish",
+  );
+  expect(db[0].deletionPending).toBe(true);
+  await expect(saveCapture(db[0])).rejects.toThrow("Deletion is pending");
+  await deleteCapture(record);
+  expect(db).toEqual([]);
+});
+it("preserves a retry record if files are removed but final index cleanup fails", async () => {
+  const record = await addCapture(photo, DEFAULTS);
+  mocks.remove.mockImplementation(async () => {
+    mocks.write.mockRejectedValueOnce(new Error("Disk full"));
+  });
+  await expect(deleteCapture(record)).rejects.toThrow(
+    "Deletion could not finish",
+  );
+  expect(db[0].deletionPending).toBe(true);
+  mocks.remove.mockResolvedValue(undefined);
+  await deleteCapture(record);
+  expect(db).toEqual([]);
 });

@@ -226,7 +226,11 @@ export function CameraBackend({
       c.exposureCompensation &&
       (p.mode === "PHOTO" || (m.iso === null && m.shutter === null))
     )
-      settings.exposureCompensation = m.ev;
+      settings.exposureCompensation = clamp(
+        m.ev,
+        c.exposureCompensation.min,
+        c.exposureCompensation.max,
+      );
     applying.current = applying.current
       .catch(() => undefined)
       .then(async () => {

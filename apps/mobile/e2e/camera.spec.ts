@@ -56,8 +56,8 @@ test("capture, favorite, restyle, download, reload, original export, and confirm
   await page.getByRole("button", { name: "Download", exact: true }).click();
   expect((await download).suggestedFilename()).toMatch(/iris-.*\.jpg/);
   await expect(
-    page.getByRole("button", { name: "Saved", exact: true }),
-  ).toBeDisabled();
+    page.getByRole("button", { name: "Download", exact: true }),
+  ).toBeEnabled();
   await page.reload();
   await expect(
     page.getByRole("button", { name: "Open library, 1 photos", exact: true }),
@@ -409,5 +409,60 @@ test("new camera chrome persists aspect framing and exposes the real library", a
       "Your photographs will appear here after your first capture.",
       { exact: true },
     ),
+  ).toHaveCount(0);
+});
+
+test("blocked downloads remain retryable", async ({ page }) => {
+  await start(page);
+  await capture(page);
+  await page
+    .getByRole("button", { name: "Review latest photo", exact: true })
+    .click();
+  await page.evaluate(() => {
+    HTMLAnchorElement.prototype.click = () => {};
+  });
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await page.getByRole("button", { name: "Download", exact: true }).click();
+    await expect(
+      page.getByRole("button", { name: "Download", exact: true }),
+    ).toBeEnabled();
+  }
+  await expect(
+    page.getByRole("button", { name: "Saved", exact: true }),
+  ).toHaveCount(0);
+});
+
+test("invalid stored capture data opens recovery without overwriting the index", async ({
+  page,
+}) => {
+  await start(page);
+  await capture(page);
+  await page.evaluate(async () => {
+    const db = await new Promise<IDBDatabase>((resolve) => {
+      const request = indexedDB.open("iris", 1);
+      request.onsuccess = () => resolve(request.result);
+    });
+    await new Promise<void>((resolve) => {
+      const tx = db.transaction("library", "readwrite");
+      const store = tx.objectStore("library");
+      const request = store.get("captures");
+      request.onsuccess = () => {
+        const records = request.result;
+        delete records[0].format;
+        store.put(records, "captures");
+      };
+      tx.oncomplete = () => resolve();
+    });
+    db.close();
+  });
+  await page.reload();
+  await expect(
+    page.getByText(/The photo index could not be read/),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Retry storage", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Take photo", exact: true }),
   ).toHaveCount(0);
 });

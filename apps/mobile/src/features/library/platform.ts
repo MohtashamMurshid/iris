@@ -1,5 +1,6 @@
 import { Asset, requestPermissionsAsync } from "expo-media-library";
 import * as Sharing from "expo-sharing";
+export const confirmsSave = true;
 export async function saveToPhotos(uri: string) {
   const permission = await requestPermissionsAsync(true, ["photo"]);
   if (!permission.granted)

@@ -189,11 +189,33 @@ export default function CameraScreen({
     };
   }, [cancelTimer]);
   useEffect(() => {
-    if (hydrated)
-      void savePreferences(p).catch((error) =>
-        setNotice(`Settings were not saved. ${errorText(error)}`),
-      );
+    if (!hydrated) return;
+    const timer = setTimeout(() => {
+      void savePreferences(p).catch((error) => {
+        if (mounted.current)
+          setNotice(`Settings were not saved. ${errorText(error)}`);
+      });
+    }, 200);
+    return () => clearTimeout(timer);
   }, [p, hydrated]);
+  useEffect(() => {
+    if (!hydrated) return;
+    const flush = () => {
+      void savePreferences(pref.current).catch((error) => {
+        if (mounted.current)
+          setNotice(`Settings were not saved. ${errorText(error)}`);
+      });
+    };
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state !== "active") flush();
+    });
+    if (Platform.OS === "web") window.addEventListener("pagehide", flush);
+    return () => {
+      subscription.remove();
+      if (Platform.OS === "web") window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, [hydrated]);
   useEffect(() => {
     if (!captureFlash) return;
     const timer = setTimeout(() => setCaptureFlash(false), 140);
@@ -340,7 +362,7 @@ export default function CameraScreen({
           await saveCapture(record);
           await refresh();
           setNotice(
-            Platform.OS === "web" ? "Photo downloaded." : "Saved to Photos.",
+            Platform.OS === "web" ? "Download requested." : "Saved to Photos.",
           );
         } catch (error) {
           setNotice(`Photo kept in Iris. ${errorText(error)}`);
@@ -400,7 +422,7 @@ export default function CameraScreen({
   }
   function saveReview(retryUncertain = false) {
     if (!selected) return;
-    if (selected.savePending && !retryUncertain) {
+    if (Platform.OS !== "web" && selected.savePending && !retryUncertain) {
       setPanel("saveAgain");
       return;
     }
@@ -409,7 +431,7 @@ export default function CameraScreen({
       await refresh();
       setPanel(null);
       setNotice(
-        Platform.OS === "web" ? "Download started." : "Saved to Photos.",
+        Platform.OS === "web" ? "Download requested." : "Saved to Photos.",
       );
     });
   }
@@ -665,6 +687,12 @@ export default function CameraScreen({
         reviewControls={
           selected ? (
             <>
+              {selected.deletionPending && (
+                <Text style={ui.copy}>
+                  Deletion is incomplete. Tap Delete to finish removing this
+                  photograph.
+                </Text>
+              )}
               <View style={[ui.heading, { paddingVertical: 12 }]}>
                 <Button
                   label="Back to camera"
@@ -680,18 +708,22 @@ export default function CameraScreen({
               <View style={ui.row}>
                 <Button
                   label={
-                    selected.saved
+                    selected.saved && Platform.OS !== "web"
                       ? "Saved"
                       : Platform.OS === "web"
                         ? "Download"
                         : "Save to Photos"
                   }
-                  disabled={busy || selected.saved}
+                  disabled={
+                    busy ||
+                    (selected.saved && Platform.OS !== "web") ||
+                    selected.deletionPending
+                  }
                   onPress={() => saveReview()}
                 />
                 <Button
                   label="Share"
-                  disabled={busy}
+                  disabled={busy || selected.deletionPending}
                   onPress={() => {
                     void run(() => sharePhoto(selected.uri));
                   }}
@@ -711,7 +743,11 @@ export default function CameraScreen({
                 />
                 <Button
                   label="Edit Look"
-                  disabled={busy || selected.format === "dng"}
+                  disabled={
+                    busy ||
+                    selected.format === "dng" ||
+                    selected.deletionPending
+                  }
                   onPress={() => {
                     setEditLook(selected.requestedLook);
                     setEditIntensity(selected.requestedIntensity);
@@ -1307,7 +1343,9 @@ export default function CameraScreen({
                       />
                       <Text style={ui.copy}>
                         {record.favorite ? "★ " : ""}
-                        {record.format.toUpperCase()} · {record.look}
+                        {record.deletionPending
+                          ? "Deletion pending · retry Delete"
+                          : `${record.format.toUpperCase()} · ${record.look}`}
                       </Text>
                     </Pressable>
                   ))}
@@ -1330,7 +1368,7 @@ export default function CameraScreen({
             <>
               <Text selectable style={ui.copy}>
                 {new Date(selected.createdAt).toLocaleString()}
-                <Text>{`\n${selected.width} × ${selected.height}\n${selected.format.toUpperCase()}\nLook: ${selected.format === "dng" ? "Not baked into RAW" : `${selected.look}, ${selected.intensity}%`}\nRecipe version: ${selected.recipeVersion}\n${selected.saved ? "Saved to Photos / downloaded" : "Kept in Iris"}\n\n${Object.entries(
+                <Text>{`\n${selected.width} × ${selected.height}\n${selected.format.toUpperCase()}\nLook: ${selected.format === "dng" ? "Not baked into RAW" : `${selected.look}, ${selected.intensity}%`}\nRecipe version: ${selected.recipeVersion}\n${selected.saved && Platform.OS !== "web" ? "Saved to Photos" : "Kept in Iris"}\n\n${Object.entries(
                   selected.metadata,
                 )
                   .map(
@@ -1345,6 +1383,7 @@ export default function CameraScreen({
               </Text>
               <Button
                 label="Share original"
+                disabled={busy || selected.deletionPending}
                 onPress={() => {
                   void run(() => sharePhoto(selected.sourceUri));
                 }}
@@ -1354,6 +1393,9 @@ export default function CameraScreen({
           {panel === "delete" && selected && (
             <>
               <Text style={ui.copy}>
+                {selected.deletionPending
+                  ? "Deletion is incomplete. Retry to remove the remaining files. "
+                  : ""}
                 Delete this photograph and its original from Iris? This cannot
                 be undone. Copies already saved to Photos or downloaded remain
                 there.
@@ -1364,8 +1406,11 @@ export default function CameraScreen({
                 disabled={busy}
                 onPress={() => {
                   void run(async () => {
-                    await deleteCapture(selected);
-                    await refresh();
+                    try {
+                      await deleteCapture(selected);
+                    } finally {
+                      await refresh();
+                    }
                     setSelectedId(null);
                     setPanel(null);
                     setNotice("Photograph deleted from Iris.");

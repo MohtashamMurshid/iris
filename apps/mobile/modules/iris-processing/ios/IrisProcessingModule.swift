@@ -31,14 +31,14 @@ public class IrisProcessingModule: Module {
       let output = AVCapturePhotoOutput()
       let frames = AVCaptureVideoDataOutput()
       session.beginConfiguration()
-      defer { session.commitConfiguration() }
       if session.canSetSessionPreset(.photo) { session.sessionPreset = .photo }
-      guard session.canAddInput(input) else { return ["jpeg"] }
+      guard session.canAddInput(input) else { session.commitConfiguration(); return ["jpeg"] }
       session.addInput(input)
-      guard session.canAddOutput(output) else { return ["jpeg"] }
+      guard session.canAddOutput(output) else { session.commitConfiguration(); return ["jpeg"] }
       session.addOutput(output)
-      guard session.canAddOutput(frames) else { return ["jpeg"] }
+      guard session.canAddOutput(frames) else { session.commitConfiguration(); return ["jpeg"] }
       session.addOutput(frames)
+      session.commitConfiguration()
       var formats = ["jpeg"]
       if output.availablePhotoCodecTypes.contains(.hevc) { formats.insert("heic", at: 0) }
       if !output.availableRawPhotoPixelFormatTypes.isEmpty { formats.append("dng") }
