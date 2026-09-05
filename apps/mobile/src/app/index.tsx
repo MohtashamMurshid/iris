@@ -1,877 +1,1786 @@
-import { CameraView, type CameraType, type FlashMode } from 'expo-camera';
-import * as Haptics from 'expo-haptics';
-import { Image } from 'expo-image';
-import { SymbolView, type SymbolViewProps } from 'expo-symbols';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import * as Haptics from "expo-haptics";
+import { Accelerometer } from "expo-sensors";
+import { Image } from "expo-image";
+import { SymbolView, type SymbolViewProps } from "expo-symbols";
 import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import {
+  ActivityIndicator,
+  AppState,
+  Linking,
+  Platform,
   Pressable,
-  StyleSheet,
+  ScrollView,
   Text,
   View,
+  useWindowDimensions,
   type GestureResponderEvent,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { IrisMark } from "@/components/iris-mark";
+import { IrisColors } from "@/constants/theme";
+import { CameraPermissionGate } from "@/features/camera/camera-permission-gate";
+import { awaitCapture } from "@/features/camera/capture-task";
+import { releaseTemporary } from "@/features/library/files";
+import { CameraBackend } from "@/features/camera/backend";
+import type { CameraHandle } from "@/features/camera/backend.types";
+import {
+  AUTO,
+  DEFAULTS,
+  EMPTY_CAPABILITIES,
+  clamp,
+  constrainPreferences,
+  shutterLabel,
+  type CameraReading,
+  type Capabilities,
+  type CaptureRecord,
+  type CaptureResult,
+  type LookId,
+  type ManualSettings,
+  type Preferences,
+} from "@/features/camera/model";
+import { Grid, Histogram, Level } from "@/features/camera/overlays";
+import {
+  Button,
+  Dial,
+  Options,
+  Sheet,
+  Toggle,
+  ui,
+} from "@/features/camera/panels";
+import { styles } from "@/features/camera/styles";
+import {
+  addCapture,
+  deleteCapture,
+  loadCaptures,
+  restyleCapture,
+  saveCapture,
+  updateCapture,
+} from "@/features/library/repository";
+import { sharePhoto } from "@/features/library/platform";
+import { LOOKS } from "@/features/looks/recipes";
+import { loadPreferences, savePreferences } from "@/features/settings/storage";
 
-import { IrisMark } from '@/components/iris-mark';
-import { IrisColors, IrisFonts } from '@/constants/theme';
-import { CameraPermissionGate } from '@/features/camera/camera-permission-gate';
-
-type Mode = 'PHOTO' | 'MANUAL';
-type ToolId = 'format' | 'flash' | 'timer' | 'grid' | 'level' | 'focus' | 'look' | 'histogram';
-
-type Tool = {
+type ToolId =
+  | "format"
+  | "flash"
+  | "timer"
+  | "grid"
+  | "level"
+  | "focus"
+  | "look"
+  | "histogram";
+type Panel =
+  | ToolId
+  | "settings"
+  | "guide"
+  | "library"
+  | "metadata"
+  | "delete"
+  | "editLook"
+  | "exposure"
+  | "whiteBalance"
+  | "ev"
+  | "saveAgain"
+  | null;
+const TOOLS: {
   id: ToolId;
   label: string;
-  symbol: SymbolViewProps['name'];
-  value: string;
-};
-
-const LENSES = ['24', '28', '35', '50'];
-
-const INITIAL_TOOLS: Tool[] = [
+  symbol: SymbolViewProps["name"];
+  fallback: string;
+}[] = [
   {
-    id: 'format',
-    label: 'FORMAT',
-    symbol: { ios: 'rectangle.compress.vertical', android: 'crop_5_4', web: 'crop_5_4' },
-    value: 'HEIF',
+    id: "format",
+    label: "FORMAT",
+    symbol: { ios: "rectangle.compress.vertical", web: "crop_5_4" },
+    fallback: "▣",
   },
   {
-    id: 'flash',
-    label: 'FLASH',
-    symbol: { ios: 'bolt.slash', android: 'flash_off', web: 'flash_off' },
-    value: 'OFF',
+    id: "flash",
+    label: "FLASH",
+    symbol: { ios: "bolt", web: "flash_on" },
+    fallback: "ϟ",
   },
   {
-    id: 'timer',
-    label: 'TIMER',
-    symbol: { ios: 'timer', android: 'timer', web: 'timer' },
-    value: 'OFF',
+    id: "timer",
+    label: "TIMER",
+    symbol: { ios: "timer", web: "timer" },
+    fallback: "◷",
   },
   {
-    id: 'grid',
-    label: 'GRID',
-    symbol: { ios: 'grid', android: 'grid_3x3', web: 'grid_3x3' },
-    value: '3 × 3',
+    id: "grid",
+    label: "GRID",
+    symbol: { ios: "grid", web: "grid_3x3" },
+    fallback: "▦",
   },
   {
-    id: 'level',
-    label: 'LEVEL',
-    symbol: { ios: 'level', android: 'straighten', web: 'straighten' },
-    value: 'ON',
+    id: "level",
+    label: "LEVEL",
+    symbol: { ios: "level", web: "straighten" },
+    fallback: "−",
   },
   {
-    id: 'focus',
-    label: 'FOCUS',
-    symbol: { ios: 'viewfinder', android: 'center_focus_strong', web: 'center_focus_strong' },
-    value: 'AUTO',
+    id: "focus",
+    label: "FOCUS",
+    symbol: { ios: "viewfinder", web: "center_focus_strong" },
+    fallback: "⌖",
   },
   {
-    id: 'look',
-    label: 'LOOK',
-    symbol: { ios: 'camera.filters', android: 'filter_vintage', web: 'filter_vintage' },
-    value: 'NATURAL',
+    id: "look",
+    label: "LOOK",
+    symbol: { ios: "camera.filters", web: "filter_vintage" },
+    fallback: "◉",
   },
   {
-    id: 'histogram',
-    label: 'HIST.',
-    symbol: { ios: 'waveform.path.ecg', android: 'monitoring', web: 'monitoring' },
-    value: 'ON',
+    id: "histogram",
+    label: "HIST.",
+    symbol: { ios: "waveform.path.ecg", web: "monitoring" },
+    fallback: "▥",
   },
 ];
-
-const TOOL_ALTERNATES: Record<ToolId, [string, string]> = {
-  format: ['HEIF', 'RAW'],
-  flash: ['OFF', 'AUTO'],
-  timer: ['OFF', '3 SEC'],
-  grid: ['3 × 3', 'OFF'],
-  level: ['ON', 'OFF'],
-  focus: ['AUTO', 'LOCK'],
-  look: ['NATURAL', 'NOIR'],
-  histogram: ['ON', 'OFF'],
-};
+const errorText = (error: unknown) =>
+  error instanceof Error && error.message
+    ? error.message
+    : "That action did not complete. Please try again.";
 
 export default function CameraScreen() {
-  return (
-    <CameraPermissionGate>
-      <CameraExperience />
-    </CameraPermissionGate>
+  const camera = useRef<CameraHandle>(null);
+  const [p, setP] = useState<Preferences>(DEFAULTS);
+  const pref = useRef(p);
+  useLayoutEffect(() => {
+    pref.current = p;
+  }, [p]);
+  const [hydrated, setHydrated] = useState(false);
+  const [records, setRecords] = useState<CaptureRecord[]>([]);
+  const [capabilities, setCapabilities] =
+    useState<Capabilities>(EMPTY_CAPABILITIES);
+  const [reading, setReading] = useState<CameraReading>({});
+  const [ready, setReady] = useState(false);
+  const [foreground, setForeground] = useState(
+    AppState.currentState !== "background",
   );
-}
-
-function CameraExperience() {
-  const cameraRef = useRef<CameraView>(null);
-  const [mode, setMode] = useState<Mode>('PHOTO');
-  const [lens, setLens] = useState('35');
-  const [tools, setTools] = useState(INITIAL_TOOLS);
-  const [capturedCount, setCapturedCount] = useState(0);
+  const [cameraKey, setCameraKey] = useState(0);
+  const [panel, setPanel] = useState<Panel>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [pendingPhoto, setPendingPhoto] = useState<{
+    photo: CaptureResult;
+    settings: Preferences;
+  } | null>(null);
+  const [cameraError, setCameraError] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [countdown, setCountdown] = useState(0);
   const [captureFlash, setCaptureFlash] = useState(false);
-  const [cameraFacing, setCameraFacing] = useState<CameraType>('back');
-  const [cameraReady, setCameraReady] = useState(false);
-  const [captureError, setCaptureError] = useState<string | null>(null);
-  const [isCapturing, setIsCapturing] = useState(false);
-  const [latestPhotoUri, setLatestPhotoUri] = useState<string | null>(null);
-  const [showLatestPhoto, setShowLatestPhoto] = useState(false);
-  const [focusPoint, setFocusPoint] = useState({ x: 50, y: 45 });
-  const [viewfinderSize, setViewfinderSize] = useState({ width: 1, height: 1 });
+  const [focus, setFocus] = useState<{
+    x: number;
+    y: number;
+    locked: boolean;
+  } | null>(null);
+  const [editLook, setEditLook] = useState<LookId>("none");
+  const [editIntensity, setEditIntensity] = useState(100);
+  const [onlyFavorites, setOnlyFavorites] = useState(false);
+  const [libraryFormat, setLibraryFormat] = useState("all");
+  const [libraryLook, setLibraryLook] = useState("all");
+  const operation = useRef(false);
+  const shutterToken = useRef(0);
+  const countdownRef = useRef(0);
+  const countdownTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resolveCountdown = useRef<(() => void) | null>(null);
+  const mounted = useRef(true);
+  const pinch = useRef<{ distance: number; zoom: number } | null>(null);
+  const { width, height } = useWindowDimensions();
+  const landscape = width > height;
+  const selected = records.find((r) => r.id === selectedId);
+  const newest = records[0];
+  const shootingActive = foreground && !selected;
+  const canFlip = capabilities.devices.some(
+    (device) => device.facing !== p.facing,
+  );
 
-  const activeLook = tools.find((tool) => tool.id === 'look')?.value ?? 'NATURAL';
-  const gridEnabled = tools.find((tool) => tool.id === 'grid')?.value !== 'OFF';
-  const flashMode: FlashMode =
-    tools.find((tool) => tool.id === 'flash')?.value === 'AUTO' ? 'auto' : 'off';
-
+  const refresh = useCallback(async () => {
+    const photos = await loadCaptures();
+    if (mounted.current) setRecords(photos);
+    return photos;
+  }, []);
+  const cancelTimer = useCallback(() => {
+    if (!countdownRef.current) return;
+    shutterToken.current++;
+    if (countdownTimer.current) clearTimeout(countdownTimer.current);
+    resolveCountdown.current?.();
+    countdownRef.current = 0;
+    setCountdown(0);
+    operation.current = false;
+    setBusy(false);
+  }, []);
+  useEffect(() => {
+    mounted.current = true;
+    void Promise.all([loadPreferences(), loadCaptures()])
+      .then(([preferences, photos]) => {
+        if (mounted.current) {
+          setP(preferences);
+          setRecords(photos);
+          setHydrated(true);
+        }
+      })
+      .catch((error) => {
+        if (mounted.current)
+          setNotice(`Storage could not be opened. ${errorText(error)}`);
+      });
+    const subscription = AppState.addEventListener("change", (state) => {
+      setForeground(state === "active");
+      if (state !== "active") {
+        setReady(false);
+        cancelTimer();
+      }
+    });
+    return () => {
+      mounted.current = false;
+      subscription.remove();
+      cancelTimer();
+    };
+  }, [cancelTimer]);
+  useEffect(() => {
+    if (hydrated)
+      void savePreferences(p).catch((error) =>
+        setNotice(`Settings were not saved. ${errorText(error)}`),
+      );
+  }, [p, hydrated]);
   useEffect(() => {
     if (!captureFlash) return;
-    const timeout = setTimeout(() => setCaptureFlash(false), 140);
-    return () => clearTimeout(timeout);
+    const timer = setTimeout(() => setCaptureFlash(false), 140);
+    return () => clearTimeout(timer);
   }, [captureFlash]);
-
-  const shotCounter = useMemo(
-    () => String(36 - (capturedCount % 36)).padStart(2, '0'),
-    [capturedCount],
-  );
-
-  function toggleTool(id: ToolId) {
-    setTools((current) =>
-      current.map((tool) => {
-        if (tool.id !== id) return tool;
-        const [first, second] = TOOL_ALTERNATES[id];
-        return { ...tool, value: tool.value === first ? second : first };
-      }),
-    );
+  const onCapabilities = useCallback((c: Capabilities) => {
+    setCapabilities(c);
+    const previous = pref.current;
+    const constrained = constrainPreferences(previous, c);
+    if (
+      previous.deviceId === c.id &&
+      (constrained.format !== previous.format ||
+        JSON.stringify(constrained.manual) !== JSON.stringify(previous.manual))
+    )
+      setNotice(
+        "Settings were adjusted to the active camera’s supported ranges.",
+      );
+    setP((current) => {
+      const next = constrainPreferences(current, c);
+      if (JSON.stringify(next) === JSON.stringify(current)) return current;
+      return next;
+    });
+  }, []);
+  const onReady = useCallback((value: boolean) => {
+    setReady(value);
+    if (value) {
+      setCameraError(false);
+      if (!pref.current.guideSeen) setPanel((current) => current ?? "guide");
+    }
+  }, []);
+  const onCameraError = useCallback((message: string) => {
+    setReady(false);
+    setCameraError(true);
+    setNotice(message);
+  }, []);
+  function update(values: Partial<Preferences>) {
+    setP((current) => ({ ...current, ...values }));
   }
-
-  function setFocus(event: GestureResponderEvent) {
-    const { locationX, locationY } = event.nativeEvent;
-
-    // Native press coordinates are pixels. The broad clamp keeps the reticle clear of edge chrome.
-    setFocusPoint({
-      x: Math.min(90, Math.max(10, (locationX / viewfinderSize.width) * 100)),
-      y: Math.min(84, Math.max(16, (locationY / viewfinderSize.height) * 100)),
+  function manual(values: Partial<ManualSettings>) {
+    setP((current) => ({
+      ...current,
+      manual: { ...current.manual, ...values },
+    }));
+  }
+  function closePanel() {
+    if (panel === "guide") update({ guideSeen: true });
+    setPanel(null);
+  }
+  async function run(action: () => Promise<void>) {
+    if (operation.current) return;
+    operation.current = true;
+    setBusy(true);
+    setNotice(null);
+    try {
+      await action();
+    } catch (error) {
+      setNotice(errorText(error));
+      await refresh().catch(() => undefined);
+    } finally {
+      operation.current = false;
+      if (mounted.current) setBusy(false);
+    }
+  }
+  async function capture() {
+    if (countdownRef.current) {
+      cancelTimer();
+      return;
+    }
+    if (
+      operation.current ||
+      !ready ||
+      !camera.current ||
+      selected ||
+      panel ||
+      pendingPhoto
+    )
+      return;
+    operation.current = true;
+    setBusy(true);
+    setNotice(null);
+    const token = ++shutterToken.current;
+    const settings = pref.current;
+    try {
+      for (let remaining = settings.timer; remaining > 0; remaining--) {
+        countdownRef.current = remaining;
+        setCountdown(remaining);
+        await new Promise<void>((resolve) => {
+          resolveCountdown.current = resolve;
+          countdownTimer.current = setTimeout(resolve, 1000);
+        });
+        if (token !== shutterToken.current) return;
+      }
+      countdownRef.current = 0;
+      setCountdown(0);
+      if (!camera.current)
+        throw new Error("The camera stopped before capture.");
+      setCaptureFlash(true);
+      if (Platform.OS === "ios")
+        void Haptics.selectionAsync().catch(() => undefined);
+      const photo = await awaitCapture(
+        camera.current.capture(),
+        Math.max(30000, (settings.manual.shutter ?? 0) * 1000 + 15000),
+        () => {
+          setReady(false);
+          setCameraKey((value) => value + 1);
+        },
+        async (late) => {
+          await releaseTemporary(late.sourceUri);
+          if (late.thumbnailUri !== late.sourceUri)
+            await releaseTemporary(late.thumbnailUri);
+        },
+      );
+      let record: CaptureRecord;
+      try {
+        record = await addCapture(photo, settings);
+      } catch (error) {
+        setPendingPhoto({ photo, settings });
+        throw new Error(
+          `The photo was captured but could not be kept in your library. Retry keeping it or share the original now. ${errorText(error)}`,
+        );
+      }
+      await refresh();
+      if (
+        record.format !== "dng" &&
+        settings.look !== "none" &&
+        settings.intensity > 0
+      ) {
+        try {
+          record = await restyleCapture(
+            record,
+            settings.look,
+            settings.intensity,
+          );
+          await refresh();
+        } catch (error) {
+          setNotice(
+            `Original kept in Iris. Look processing failed: ${errorText(error)} Open the photo to retry.`,
+          );
+          return;
+        }
+      }
+      if (settings.autoSave) {
+        try {
+          await saveCapture(record);
+          await refresh();
+          setNotice(
+            Platform.OS === "web" ? "Photo downloaded." : "Saved to Photos.",
+          );
+        } catch (error) {
+          setNotice(`Photo kept in Iris. ${errorText(error)}`);
+          await refresh();
+        }
+      } else
+        setNotice("Photo kept in Iris. Open the thumbnail to save or share.");
+    } catch (error) {
+      setNotice(errorText(error));
+    } finally {
+      if (token === shutterToken.current) {
+        operation.current = false;
+        setBusy(false);
+        countdownRef.current = 0;
+        setCountdown(0);
+      }
+    }
+  }
+  function review(record: CaptureRecord) {
+    if (busy) return;
+    setSelectedId(record.id);
+    setPanel(null);
+    setReady(false);
+    setNotice(null);
+  }
+  function returnToCamera() {
+    setSelectedId(null);
+    setReady(false);
+    setNotice(null);
+    setFocus(null);
+  }
+  function switchFacing() {
+    if (busy || !canFlip) return;
+    setReady(false);
+    setFocus(null);
+    update({
+      facing: p.facing === "back" ? "front" : "back",
+      deviceId: null,
+      zoom: 1,
+      manual: AUTO,
+      mode: "PHOTO",
     });
   }
-
-  async function capture() {
-    if (!cameraRef.current || !cameraReady || isCapturing || showLatestPhoto) return;
-
-    setCaptureError(null);
-    setCaptureFlash(true);
-    setIsCapturing(true);
-
-    if (process.env.EXPO_OS === 'ios') {
-      void Haptics.selectionAsync().catch(() => undefined);
+  function focusFrame(event: GestureResponderEvent, locked = false) {
+    if (!ready || busy || selected || pinch.current) return;
+    if (!capabilities.metering) {
+      setNotice(
+        "This camera handles focus automatically. Manual options are listed in the Focus tray.",
+      );
+      return;
     }
-
-    try {
-      const photo = await cameraRef.current.takePictureAsync({ quality: 0.9 });
-      setLatestPhotoUri(photo.uri);
-      setCapturedCount((count) => count + 1);
-    } catch {
-      setCaptureError('That photo was not captured. The camera is ready for another try.');
-    } finally {
-      setIsCapturing(false);
+    const { locationX: x, locationY: y } = event.nativeEvent;
+    void camera.current
+      ?.focus(x, y, locked)
+      .then(() => setFocus({ x, y, locked }))
+      .catch((error) => setNotice(errorText(error)));
+  }
+  function saveReview(retryUncertain = false) {
+    if (!selected) return;
+    if (selected.savePending && !retryUncertain) {
+      setPanel("saveAgain");
+      return;
     }
+    void run(async () => {
+      await saveCapture(selected, retryUncertain);
+      await refresh();
+      setPanel(null);
+      setNotice(
+        Platform.OS === "web" ? "Download started." : "Saved to Photos.",
+      );
+    });
   }
+  const toolValues: Record<ToolId, string> = {
+    format: p.format === "dng" ? "RAW" : p.format.toUpperCase(),
+    flash: capabilities.flash ? p.flash.toUpperCase() : "N/A",
+    timer: p.timer ? `${p.timer} SEC` : "OFF",
+    grid: { off: "OFF", thirds: "3 × 3", square: "SQUARE", golden: "GOLDEN" }[
+      p.grid
+    ],
+    level: p.level ? "ON" : "OFF",
+    focus: focus?.locked || p.manual.focus !== null ? "LOCKED" : "AUTO",
+    look: p.look.toUpperCase(),
+    histogram: p.histogram ? "ON" : "OFF",
+  };
 
-  function toggleFacing() {
-    if (isCapturing) return;
-    setCameraReady(false);
-    setCameraFacing((value) => (value === 'back' ? 'front' : 'back'));
-  }
-
-  function reviewLatestPhoto() {
-    if (!latestPhotoUri || isCapturing) return;
-    setCameraReady(false);
-    setShowLatestPhoto(true);
-  }
-
-  function returnToCamera() {
-    setCameraReady(false);
-    setShowLatestPhoto(false);
-  }
+  if (!hydrated)
+    return (
+      <View
+        style={[
+          styles.page,
+          { justifyContent: "center", padding: 30, gap: 20 },
+        ]}
+      >
+        <IrisMark size={64} />
+        {notice ? (
+          <>
+            <Text style={ui.copy}>{notice}</Text>
+            <Button
+              label="Retry storage"
+              onPress={() => {
+                void Promise.all([loadPreferences(), loadCaptures()])
+                  .then(([preferences, photos]) => {
+                    setP(preferences);
+                    setRecords(photos);
+                    setNotice(null);
+                    setHydrated(true);
+                  })
+                  .catch((error) => setNotice(errorText(error)));
+              }}
+            />
+          </>
+        ) : (
+          <ActivityIndicator color={IrisColors.chalk} />
+        )}
+      </View>
+    );
 
   return (
     <View style={styles.page}>
-      <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}>
-        <View style={styles.appShell}>
+      <SafeAreaView
+        edges={["top", "bottom", "left", "right"]}
+        style={styles.safeArea}
+      >
+        <View style={[styles.appShell, landscape && { maxWidth: 1100 }]}>
           <View style={styles.topRail}>
             <View accessibilityLabel="Iris" style={styles.brandLockup}>
               <IrisMark size={27} />
               <Text style={styles.wordmark}>IRIS</Text>
             </View>
-
-            <View style={styles.sessionState}>
-              <View style={styles.liveDot} />
-              <Text style={styles.sessionText}>{showLatestPhoto ? 'REVIEW' : cameraFacing.toUpperCase()}</Text>
-            </View>
-
-            <View style={styles.counterPill}>
-              <Text style={styles.counterText}>{shotCounter}</Text>
-              <Text style={styles.counterLabel}>FRAMES</Text>
+            <Text style={styles.sessionText}>
+              {selected
+                ? "REVIEW"
+                : !foreground
+                  ? "PAUSED"
+                  : ready
+                    ? p.facing.toUpperCase()
+                    : "STARTING"}
+            </Text>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
+            >
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Open library, ${records.length} photos`}
+                disabled={busy}
+                onPress={() => setPanel("library")}
+                style={[
+                  styles.counterPill,
+                  { minHeight: 44, justifyContent: "center" },
+                ]}
+              >
+                <Text style={styles.counterText}>
+                  {String(records.length).padStart(2, "0")}
+                </Text>
+                <Text style={styles.counterLabel}>FRAMES</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Settings"
+                disabled={busy}
+                onPress={() => setPanel("settings")}
+                style={{
+                  width: 44,
+                  height: 44,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text style={{ color: IrisColors.chalk, fontSize: 23 }}>
+                  ···
+                </Text>
+              </Pressable>
             </View>
           </View>
-
-          <Pressable
-            accessibilityHint="Moves the focus indicator"
-            accessibilityLabel={showLatestPhoto ? 'Latest captured photo' : 'Live camera preview'}
-            onLayout={(event) => setViewfinderSize(event.nativeEvent.layout)}
-            onPress={showLatestPhoto ? undefined : setFocus}
-            style={styles.viewfinder}>
-            {showLatestPhoto && latestPhotoUri ? (
-              <Image contentFit="cover" source={latestPhotoUri} style={StyleSheet.absoluteFill} />
-            ) : (
-              <CameraView
-                active={!showLatestPhoto}
-                autofocus="on"
-                facing={cameraFacing}
-                flash={flashMode}
-                mirror={cameraFacing === 'front'}
-                mode="picture"
-                onCameraReady={() => {
-                  setCameraReady(true);
-                  setCaptureError(null);
-                }}
-                onMountError={(event) => {
-                  setCameraReady(false);
-                  setCaptureError(event.message);
-                }}
-                pointerEvents="none"
-                ref={cameraRef}
-                responsiveOrientationWhenOrientationLocked
-                style={StyleSheet.absoluteFill}
-              />
-            )}
-
-            {!showLatestPhoto && gridEnabled && (
-              <View style={[StyleSheet.absoluteFill, styles.nonInteractive]}>
-                <View style={[styles.gridLineVertical, { left: '33.333%' }]} />
-                <View style={[styles.gridLineVertical, { left: '66.666%' }]} />
-                <View style={[styles.gridLineHorizontal, { top: '33.333%' }]} />
-                <View style={[styles.gridLineHorizontal, { top: '66.666%' }]} />
-              </View>
-            )}
-
-            {!showLatestPhoto && (
-              <View style={styles.exposureChip}>
-                <Text style={styles.exposureText}>1/125</Text>
-                <View style={styles.exposureDivider} />
-                <Text style={styles.exposureText}>ISO 64</Text>
-              </View>
-            )}
-
-            {!showLatestPhoto && (
-              <View
-                style={[
-                  styles.focusReticle,
-                  styles.nonInteractive,
-                  { left: `${focusPoint.x}%`, top: `${focusPoint.y}%` },
-                ]}>
-                <View style={styles.focusDot} />
-              </View>
-            )}
-
-            <View style={styles.previewLabel}>
-              <View style={styles.previewLabelDot} />
-              <Text style={styles.previewLabelText}>
-                {showLatestPhoto ? 'LAST CAPTURE' : cameraReady ? 'LIVE CAMERA' : 'STARTING CAMERA'}
-              </Text>
-            </View>
-
-            {showLatestPhoto && (
-              <Pressable
-                accessibilityLabel="Return to live camera"
-                onPress={returnToCamera}
-                style={({ pressed }) => [styles.reviewCloseButton, pressed && styles.pressed]}>
-                <Text style={styles.reviewCloseText}>BACK TO CAMERA</Text>
-              </Pressable>
-            )}
-
-            {!showLatestPhoto && (
-              <View style={styles.lensRail}>
-                {LENSES.map((value) => {
-                  const selected = lens === value;
-                  return (
-                    <Pressable
-                      accessibilityLabel={`${value} millimeter lens`}
-                      accessibilityState={{ selected }}
-                      key={value}
-                      onPress={() => setLens(value)}
-                      style={({ pressed }) => [
-                        styles.lensButton,
-                        selected && styles.lensButtonSelected,
-                        pressed && styles.pressed,
-                      ]}>
-                      <Text style={[styles.lensText, selected && styles.lensTextSelected]}>
-                        {value}
-                      </Text>
-                    </Pressable>
+          <View
+            style={{
+              flex: 1,
+              flexDirection: landscape ? "row" : "column",
+              minHeight: 0,
+            }}
+          >
+            <Pressable
+              accessibilityLabel={
+                selected ? "Captured photo" : "Live camera preview"
+              }
+              accessibilityHint="Tap to meter, hold to lock, or pinch to zoom"
+              onPress={(event) => focusFrame(event)}
+              onLongPress={(event) => focusFrame(event, true)}
+              onTouchStart={(event) => {
+                const touches = event.nativeEvent.touches;
+                if (touches.length === 2 && !busy && !selected)
+                  pinch.current = {
+                    distance: Math.hypot(
+                      touches[0].pageX - touches[1].pageX,
+                      touches[0].pageY - touches[1].pageY,
+                    ),
+                    zoom: p.zoom,
+                  };
+              }}
+              onTouchMove={(event) => {
+                const touches = event.nativeEvent.touches;
+                if (pinch.current && touches.length === 2 && !busy) {
+                  const distance = Math.hypot(
+                    touches[0].pageX - touches[1].pageX,
+                    touches[0].pageY - touches[1].pageY,
                   );
-                })}
-                <Text style={styles.millimeterLabel}>MM</Text>
-              </View>
-            )}
-
-            {captureFlash && (
-              <View style={[styles.captureFlash, styles.nonInteractive]} />
-            )}
-          </Pressable>
-
-          <View style={styles.controlDeck}>
-            {captureError && (
-              <View accessibilityRole="alert" style={styles.errorBanner}>
-                <Text selectable style={styles.errorText}>{captureError}</Text>
-              </View>
-            )}
-            <View style={styles.modeTabs}>
-              {(['PHOTO', 'MANUAL'] as const).map((value) => {
-                const selected = mode === value;
-                return (
-                  <Pressable
-                    accessibilityRole="tab"
-                    accessibilityState={{ selected }}
-                    key={value}
-                    onPress={() => setMode(value)}
-                    style={({ pressed }) => [styles.modeTab, pressed && styles.pressed]}>
-                    <Text style={[styles.modeText, selected && styles.modeTextSelected]}>
-                      {value}
-                    </Text>
-                    {selected && <View style={styles.modeRule} />}
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <View style={styles.toolGrid}>
-              {tools.map((tool) => {
-                const active = tool.value !== 'OFF';
-                return (
-                  <Pressable
-                    accessibilityLabel={`${tool.label}, ${tool.value}`}
-                    accessibilityState={{ selected: active }}
-                    key={tool.id}
-                    onPress={() => toggleTool(tool.id)}
-                    style={({ pressed }) => [
-                      styles.tool,
-                      active && styles.toolActive,
-                      pressed && styles.toolPressed,
-                    ]}>
-                    <SymbolView
-                      fallback={<Text style={styles.symbolFallback}>+</Text>}
-                      name={tool.symbol}
-                      size={19}
-                      tintColor={active ? IrisColors.chalk : IrisColors.fog}
-                      weight="light"
-                    />
-                    <Text numberOfLines={1} style={styles.toolValue}>
-                      {tool.value}
-                    </Text>
-                    <Text numberOfLines={1} style={styles.toolLabel}>
-                      {tool.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <View style={styles.captureRail}>
-              <Pressable
-                accessibilityLabel={latestPhotoUri ? 'Review latest photo' : `Current look: ${activeLook}`}
-                disabled={!latestPhotoUri || isCapturing}
-                onPress={reviewLatestPhoto}
-                style={({ pressed }) => [styles.lookControl, pressed && styles.pressed]}>
-                <View style={styles.lookSwatch}>
-                  {latestPhotoUri && (
-                    <Image contentFit="cover" source={latestPhotoUri} style={StyleSheet.absoluteFill} />
-                  )}
-                </View>
-                <View>
-                  <Text style={styles.lookLabel}>{latestPhotoUri ? 'LAST SHOT' : 'IRIS LOOK'}</Text>
-                  <Text style={styles.lookValue}>{latestPhotoUri ? 'REVIEW' : activeLook}</Text>
-                </View>
-              </Pressable>
-
-              <Pressable
-                accessibilityLabel="Take photo"
-                accessibilityRole="button"
-                accessibilityState={{ busy: isCapturing, disabled: !cameraReady || showLatestPhoto }}
-                disabled={!cameraReady || isCapturing || showLatestPhoto}
-                onPress={capture}
-                style={({ pressed }) => [
-                  styles.shutterOuter,
-                  (!cameraReady || isCapturing || showLatestPhoto) && styles.shutterDisabled,
-                  pressed && styles.shutterPressed,
-                ]}>
-                <View style={styles.shutterInner} />
-              </Pressable>
-
-              <Pressable
-                accessibilityLabel={`Switch to ${cameraFacing === 'back' ? 'front' : 'back'} camera`}
-                disabled={isCapturing || showLatestPhoto}
-                onPress={toggleFacing}
-                style={({ pressed }) => [styles.flipButton, pressed && styles.pressed]}>
-                <SymbolView
-                  fallback={<Text style={styles.symbolFallback}>↻</Text>}
-                  name={{
-                    ios: 'arrow.triangle.2.circlepath.camera',
-                    android: 'cameraswitch',
-                    web: 'cameraswitch',
-                  }}
-                  size={23}
-                  tintColor={IrisColors.chalk}
-                  weight="light"
+                  update({
+                    zoom: clamp(
+                      (pinch.current.zoom * distance) /
+                        Math.max(1, pinch.current.distance),
+                      capabilities.zoom.min,
+                      capabilities.zoom.max,
+                    ),
+                  });
+                }
+              }}
+              onTouchEnd={() => {
+                pinch.current = null;
+              }}
+              style={[styles.viewfinder, { minHeight: 100 }]}
+            >
+              <CameraPermissionGate>
+                <CameraBackend
+                  key={cameraKey}
+                  ref={camera}
+                  preferences={p}
+                  active={shootingActive}
+                  onReady={onReady}
+                  onCapabilities={onCapabilities}
+                  onReading={setReading}
+                  onError={onCameraError}
                 />
-              </Pressable>
+              </CameraPermissionGate>
+              {selected ? (
+                <Image
+                  contentFit="contain"
+                  source={
+                    selected.format === "dng"
+                      ? selected.thumbnailUri
+                      : selected.uri
+                  }
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    backgroundColor: IrisColors.opticalBlack,
+                  }}
+                />
+              ) : (
+                <>
+                  {!!capabilities.id && !cameraError && foreground && (
+                    <>
+                      <Grid type={p.grid} />
+                      <View
+                        pointerEvents="none"
+                        style={[styles.exposureChip, { top: 12 }]}
+                      >
+                        <Text style={styles.exposureText}>
+                          {p.mode === "MANUAL" && p.manual.shutter !== null
+                            ? `${shutterLabel(p.manual.shutter)} LOCK`
+                            : shutterLabel(reading.shutter)}
+                        </Text>
+                        <View style={styles.exposureDivider} />
+                        <Text style={styles.exposureText}>
+                          {p.mode === "MANUAL" && p.manual.iso !== null
+                            ? `ISO ${Math.round(p.manual.iso)} LOCK`
+                            : reading.iso
+                              ? `ISO ${Math.round(reading.iso)}`
+                              : "AUTO ISO"}
+                        </Text>
+                      </View>
+                      {p.level && <Level />}
+                      {p.histogram && <Histogram bins={reading.histogram} />}
+                      {focus && (
+                        <View
+                          pointerEvents="none"
+                          style={[
+                            styles.focusReticle,
+                            { left: focus.x, top: focus.y },
+                          ]}
+                        >
+                          <View style={styles.focusDot} />
+                          {focus.locked && (
+                            <Text
+                              style={{
+                                color: "white",
+                                fontSize: 9,
+                                position: "absolute",
+                                top: 49,
+                              }}
+                            >
+                              LOCKED
+                            </Text>
+                          )}
+                        </View>
+                      )}
+                      <View style={styles.lensRail}>
+                        {capabilities.zoomStops.map((value) => (
+                          <Pressable
+                            key={value}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Zoom ${value} times`}
+                            {...(Platform.OS === "web"
+                              ? {
+                                  "aria-pressed":
+                                    Math.abs(p.zoom - value) < 0.05,
+                                }
+                              : {})}
+                            accessibilityState={{
+                              selected: Math.abs(p.zoom - value) < 0.05,
+                            }}
+                            disabled={busy || !ready}
+                            onPress={(event) => {
+                              event.stopPropagation();
+                              update({ zoom: value });
+                            }}
+                            style={[
+                              styles.lensButton,
+                              { minWidth: 44, minHeight: 44 },
+                              Math.abs(p.zoom - value) < 0.05 &&
+                                styles.lensButtonSelected,
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.lensText,
+                                Math.abs(p.zoom - value) < 0.05 &&
+                                  styles.lensTextSelected,
+                              ]}
+                            >
+                              {value}×
+                            </Text>
+                          </Pressable>
+                        ))}
+                        <Text style={styles.millimeterLabel}>
+                          {p.zoom.toFixed(1)}×
+                        </Text>
+                      </View>
+                    </>
+                  )}
+                </>
+              )}
+              {countdown > 0 && (
+                <View
+                  pointerEvents="none"
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text
+                    accessibilityLiveRegion="assertive"
+                    style={{ color: "white", fontSize: 88, fontWeight: "300" }}
+                  >
+                    {countdown}
+                  </Text>
+                  <Text style={ui.copy}>Tap the shutter to cancel</Text>
+                </View>
+              )}
+              {captureFlash && (
+                <View pointerEvents="none" style={styles.captureFlash} />
+              )}
+            </Pressable>
+            <View
+              style={[
+                styles.controlDeck,
+                landscape && { width: 330, paddingTop: 8 },
+              ]}
+            >
+              <ScrollView
+                contentContainerStyle={{ paddingBottom: 4 }}
+                style={
+                  landscape
+                    ? { flex: 1 }
+                    : { maxHeight: height * 0.51 - (selected ? 0 : 72) }
+                }
+              >
+                {pendingPhoto && (
+                  <View style={[ui.row, { marginTop: 10 }]}>
+                    <Button
+                      label="Retry keeping photo"
+                      disabled={busy}
+                      onPress={() => {
+                        void run(async () => {
+                          const record = await addCapture(
+                            pendingPhoto.photo,
+                            pendingPhoto.settings,
+                          );
+                          setPendingPhoto(null);
+                          await refresh();
+                          setSelectedId(record.id);
+                          setNotice(
+                            "Original kept. Open Edit Look to apply your selected Look.",
+                          );
+                        });
+                      }}
+                    />
+                    <Button
+                      label="Share captured original"
+                      disabled={busy}
+                      onPress={() => {
+                        void run(() =>
+                          sharePhoto(pendingPhoto.photo.sourceUri),
+                        );
+                      }}
+                    />
+                  </View>
+                )}
+                {!!notice && (
+                  <View
+                    accessibilityRole="alert"
+                    style={[
+                      styles.errorBanner,
+                      !cameraError &&
+                        !pendingPhoto && {
+                          backgroundColor: IrisColors.ink,
+                          borderColor: IrisColors.line,
+                        },
+                    ]}
+                  >
+                    <Text selectable style={styles.errorText}>
+                      {notice}
+                    </Text>
+                    <View
+                      style={[
+                        ui.row,
+                        { justifyContent: "center", marginTop: 5 },
+                      ]}
+                    >
+                      {cameraError && (
+                        <Button
+                          label="Retry camera"
+                          disabled={busy}
+                          onPress={() => {
+                            setNotice(null);
+                            setReady(false);
+                            setCameraError(false);
+                            setCameraKey((v) => v + 1);
+                          }}
+                        />
+                      )}
+                      <Button label="Dismiss" onPress={() => setNotice(null)} />
+                    </View>
+                  </View>
+                )}
+                {selected ? (
+                  <>
+                    <View style={[ui.heading, { paddingVertical: 12 }]}>
+                      <Button
+                        label="Back to camera"
+                        onPress={returnToCamera}
+                        disabled={busy}
+                      />
+                      <Text style={ui.label}>
+                        {selected.format === "dng"
+                          ? "RAW · UNBAKED"
+                          : selected.look.toUpperCase()}
+                      </Text>
+                    </View>
+                    <View style={ui.row}>
+                      <Button
+                        label={
+                          selected.saved
+                            ? "Saved"
+                            : Platform.OS === "web"
+                              ? "Download"
+                              : "Save to Photos"
+                        }
+                        disabled={busy || selected.saved}
+                        onPress={() => saveReview()}
+                      />
+                      <Button
+                        label="Share"
+                        disabled={busy}
+                        onPress={() => {
+                          void run(() => sharePhoto(selected.uri));
+                        }}
+                      />
+                      <Button
+                        label={selected.favorite ? "Favorited" : "Favorite"}
+                        selected={selected.favorite}
+                        disabled={busy}
+                        onPress={() => {
+                          void run(async () => {
+                            await updateCapture(selected.id, {
+                              favorite: !selected.favorite,
+                            });
+                            await refresh();
+                          });
+                        }}
+                      />
+                      <Button
+                        label="Edit Look"
+                        disabled={busy || selected.format === "dng"}
+                        onPress={() => {
+                          setEditLook(selected.requestedLook);
+                          setEditIntensity(selected.requestedIntensity);
+                          setPanel("editLook");
+                        }}
+                      />
+                      <Button
+                        label="Info"
+                        disabled={busy}
+                        onPress={() => setPanel("metadata")}
+                      />
+                      <Button
+                        label="Delete"
+                        danger
+                        disabled={busy}
+                        onPress={() => setPanel("delete")}
+                      />
+                    </View>
+                    {selected.requestedLook !== selected.look &&
+                      selected.format !== "dng" && (
+                        <Text style={[ui.copy, { marginTop: 10 }]}>
+                          The original is safe. Open Edit Look to retry{" "}
+                          {selected.requestedLook}.
+                        </Text>
+                      )}
+                    <View style={[ui.heading, { marginVertical: 10 }]}>
+                      <Button
+                        label="Previous photo"
+                        disabled={
+                          busy ||
+                          records.indexOf(selected) >= records.length - 1
+                        }
+                        onPress={() =>
+                          review(records[records.indexOf(selected) + 1])
+                        }
+                      />
+                      <Button
+                        label="Next photo"
+                        disabled={busy || records.indexOf(selected) === 0}
+                        onPress={() =>
+                          review(records[records.indexOf(selected) - 1])
+                        }
+                      />
+                    </View>
+                  </>
+                ) : (
+                  <>
+                    <View style={styles.modeTabs}>
+                      {(["PHOTO", "MANUAL"] as const).map((value) => (
+                        <Pressable
+                          key={value}
+                          accessibilityRole="tab"
+                          aria-selected={p.mode === value}
+                          accessibilityState={{ selected: p.mode === value }}
+                          disabled={busy}
+                          onPress={() => {
+                            update({
+                              mode: value,
+                              manual: value === "PHOTO" ? AUTO : p.manual,
+                            });
+                            setFocus(null);
+                          }}
+                          style={styles.modeTab}
+                        >
+                          <Text
+                            style={[
+                              styles.modeText,
+                              p.mode === value && styles.modeTextSelected,
+                            ]}
+                          >
+                            {value}
+                          </Text>
+                          {p.mode === value && <View style={styles.modeRule} />}
+                        </Pressable>
+                      ))}
+                    </View>
+                    {p.mode === "MANUAL" && (
+                      <ScrollView
+                        horizontal
+                        contentContainerStyle={{ gap: 6, paddingTop: 8 }}
+                        showsHorizontalScrollIndicator={false}
+                      >
+                        <Button
+                          label={`ISO ${p.manual.iso === null ? "AUTO" : Math.round(p.manual.iso)}`}
+                          disabled={busy}
+                          onPress={() => setPanel("exposure")}
+                        />
+                        <Button
+                          label={shutterLabel(p.manual.shutter)}
+                          disabled={busy}
+                          onPress={() => setPanel("exposure")}
+                        />
+                        <Button
+                          label={`WB ${p.manual.temperature === null ? "AUTO" : Math.round(p.manual.temperature) + "K"}`}
+                          disabled={busy}
+                          onPress={() => setPanel("whiteBalance")}
+                        />
+                        <Button
+                          label={`EV ${p.manual.ev.toFixed(1)}`}
+                          disabled={busy}
+                          onPress={() => setPanel("ev")}
+                        />
+                      </ScrollView>
+                    )}
+                    <View style={styles.toolGrid}>
+                      {TOOLS.map((tool) => (
+                        <Pressable
+                          key={tool.id}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${tool.label}, ${toolValues[tool.id]}`}
+                          disabled={busy}
+                          onPress={() => setPanel(tool.id)}
+                          style={({ pressed }) => [
+                            styles.tool,
+                            !["OFF", "N/A"].includes(toolValues[tool.id]) &&
+                              styles.toolActive,
+                            pressed && styles.toolPressed,
+                          ]}
+                        >
+                          <SymbolView
+                            fallback={
+                              <Text style={styles.symbolFallback}>
+                                {tool.fallback}
+                              </Text>
+                            }
+                            name={tool.symbol}
+                            size={19}
+                            tintColor={IrisColors.chalk}
+                            weight="light"
+                          />
+                          <Text numberOfLines={1} style={styles.toolValue}>
+                            {toolValues[tool.id]}
+                          </Text>
+                          <Text style={styles.toolLabel}>{tool.label}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </>
+                )}
+              </ScrollView>
+              {!selected && (
+                <View style={styles.captureRail}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      newest ? "Review latest photo" : "Open photo library"
+                    }
+                    disabled={busy}
+                    onPress={() =>
+                      newest ? review(newest) : setPanel("library")
+                    }
+                    style={[styles.lookControl, { minHeight: 44 }]}
+                  >
+                    <View style={styles.lookSwatch}>
+                      {newest && (
+                        <Image
+                          contentFit="cover"
+                          source={newest.thumbnailUri}
+                          style={{ position: "absolute", inset: 0 }}
+                        />
+                      )}
+                    </View>
+                    <View>
+                      <Text style={styles.lookLabel}>
+                        {newest ? "LAST SHOT" : "IRIS LOOK"}
+                      </Text>
+                      <Text style={styles.lookValue}>
+                        {newest ? "REVIEW" : p.look.toUpperCase()}
+                      </Text>
+                    </View>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      countdown ? "Cancel timer" : "Take photo"
+                    }
+                    accessibilityState={{
+                      busy,
+                      disabled:
+                        (!ready || busy || !!pendingPhoto) && !countdown,
+                    }}
+                    disabled={(!ready || busy || !!pendingPhoto) && !countdown}
+                    onPress={() => {
+                      void capture();
+                    }}
+                    style={({ pressed }) => [
+                      styles.shutterOuter,
+                      (!ready || busy) && !countdown && styles.shutterDisabled,
+                      pressed && styles.shutterPressed,
+                    ]}
+                  >
+                    {busy && !countdown ? (
+                      <ActivityIndicator color={IrisColors.chalk} />
+                    ) : (
+                      <View
+                        style={[
+                          styles.shutterInner,
+                          countdown > 0 && {
+                            width: 22,
+                            height: 22,
+                            borderRadius: 4,
+                          },
+                        ]}
+                      />
+                    )}
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Switch to ${p.facing === "back" ? "front" : "back"} camera`}
+                    disabled={busy}
+                    onPress={switchFacing}
+                    style={[styles.flipButton, { minHeight: 44, minWidth: 44 }]}
+                  >
+                    <Text style={{ color: IrisColors.chalk, fontSize: 26 }}>
+                      ↻
+                    </Text>
+                  </Pressable>
+                </View>
+              )}
             </View>
           </View>
         </View>
       </SafeAreaView>
+
+      {panel && (
+        <Sheet
+          busy={busy}
+          title={
+            {
+              format: "Photo format",
+              flash: "Flash",
+              timer: "Self-timer",
+              grid: "Framing grid",
+              level: "Level",
+              focus: "Focus",
+              look: "Iris Looks",
+              histogram: "Histogram",
+              settings: "Settings",
+              guide: "A quick guide",
+              library: "Your photographs",
+              metadata: "Photo details",
+              delete: "Delete photograph?",
+              editLook: "Edit Look",
+              exposure: "Manual exposure",
+              whiteBalance: "White balance",
+              ev: "Exposure compensation",
+              saveAgain: "Check your previous save",
+            }[panel]
+          }
+          onClose={busy ? () => undefined : closePanel}
+        >
+          {panel === "format" && (
+            <>
+              <Options
+                value={p.format}
+                values={capabilities.formats.map((value) => ({
+                  value,
+                  label: value === "dng" ? "RAW · DNG" : value.toUpperCase(),
+                }))}
+                onChange={(format) => {
+                  setReady(false);
+                  update({ format });
+                }}
+              />
+              <Text style={ui.copy}>
+                {p.format === "dng"
+                  ? "RAW keeps unprocessed sensor data. The live Look is a preview and is not baked into your DNG."
+                  : "The selected Look is applied at full resolution. Iris retains the original for later edits."}
+              </Text>
+              <Text style={ui.copy}>
+                Only formats reported by this camera are available. Browser
+                capture uses JPEG.
+              </Text>
+            </>
+          )}
+          {panel === "flash" &&
+            (capabilities.flash ? (
+              <Options
+                value={p.flash}
+                values={(["off", "auto", "on"] as const).map((value) => ({
+                  value,
+                  label: value.toUpperCase(),
+                }))}
+                onChange={(flash) => update({ flash })}
+              />
+            ) : (
+              <Text style={ui.copy}>
+                This camera does not expose a photo flash.
+              </Text>
+            ))}
+          {panel === "timer" && (
+            <>
+              <Options
+                value={p.timer}
+                values={[
+                  { value: 0, label: "Off" },
+                  { value: 3, label: "3 seconds" },
+                  { value: 10, label: "10 seconds" },
+                ]}
+                onChange={(timer) => update({ timer: timer as 0 | 3 | 10 })}
+              />
+              <Text style={ui.copy}>
+                Tap the shutter again to cancel. Leaving Iris cancels a
+                countdown.
+              </Text>
+            </>
+          )}
+          {panel === "grid" && (
+            <Options
+              value={p.grid}
+              values={[
+                { value: "off", label: "Off" },
+                { value: "thirds", label: "Thirds" },
+                { value: "square", label: "Square guide" },
+                { value: "golden", label: "Golden ratio" },
+              ]}
+              onChange={(grid) => update({ grid })}
+            />
+          )}
+          {panel === "level" && (
+            <>
+              <Toggle
+                label="Show level"
+                value={p.level}
+                onChange={(level) => {
+                  if (!level) {
+                    update({ level: false });
+                    return;
+                  }
+                  void Accelerometer.requestPermissionsAsync()
+                    .then((permission) => {
+                      if (permission.granted) update({ level: true });
+                      else
+                        setNotice(
+                          "Motion access is off. Enable it in device or browser settings to use the level.",
+                        );
+                    })
+                    .catch((error) => setNotice(errorText(error)));
+                }}
+              />
+              <Text style={ui.copy}>
+                Uses the device’s motion sensor. Align the center line to 0°. If
+                no motion reading is available, the viewfinder says so.
+              </Text>
+            </>
+          )}
+          {panel === "histogram" && (
+            <>
+              <Toggle
+                label="Live luminance histogram"
+                disabled={!capabilities.histogram}
+                value={p.histogram}
+                onChange={(histogram) => update({ histogram })}
+              />
+              <Text style={ui.copy}>
+                Shadows are on the left, highlights on the right. Readings are
+                sampled from the Look preview twice per second.
+              </Text>
+            </>
+          )}
+          {(panel === "look" || panel === "editLook") && (
+            <>
+              <Options
+                value={panel === "look" ? p.look : editLook}
+                values={LOOKS.map((look) => ({
+                  value: look.id,
+                  label: look.name,
+                }))}
+                onChange={(look) =>
+                  panel === "look" ? update({ look }) : setEditLook(look)
+                }
+              />
+              <Text style={ui.copy}>
+                {
+                  LOOKS.find(
+                    (look) =>
+                      look.id === (panel === "look" ? p.look : editLook),
+                  )?.description
+                }
+              </Text>
+              <Dial
+                label="Intensity"
+                range={{ min: 0, max: 100, step: 1 }}
+                value={panel === "look" ? p.intensity : editIntensity}
+                onChange={(intensity) =>
+                  panel === "look"
+                    ? update({ intensity })
+                    : setEditIntensity(intensity)
+                }
+                format={(v) => `${Math.round(v)}%`}
+              />
+              {panel === "editLook" && selected && (
+                <>
+                  <Text style={ui.copy}>
+                    Edits always start from your original. Saving a new edit
+                    creates a new copy in Photos.
+                  </Text>
+                  <Button
+                    label={busy ? "Applying…" : "Apply Look"}
+                    disabled={busy}
+                    onPress={() => {
+                      void run(async () => {
+                        await restyleCapture(selected, editLook, editIntensity);
+                        await refresh();
+                        setPanel(null);
+                        setNotice("Look applied. Your original is retained.");
+                      });
+                    }}
+                  />
+                </>
+              )}
+            </>
+          )}
+          {panel === "focus" && (
+            <>
+              <Dial
+                label="Focus"
+                range={capabilities.focus}
+                value={p.manual.focus}
+                onAuto={() => {
+                  manual({ focus: null });
+                  setFocus(null);
+                }}
+                onChange={(focus) => {
+                  update({ mode: "MANUAL" });
+                  manual({ focus });
+                }}
+                format={(v) => `${Math.round(v * 100)}% · near to far`}
+              />
+              <Text style={ui.copy}>
+                Tap the frame to meter. Hold to lock supported focus and
+                exposure. Manual focus stays locked across captures.
+              </Text>
+              <Button
+                label="Reset focus and exposure to Auto"
+                onPress={() => {
+                  update({ manual: AUTO });
+                  setFocus(null);
+                  void camera.current
+                    ?.reset()
+                    .catch((error) => setNotice(errorText(error)));
+                }}
+              />
+            </>
+          )}
+          {panel === "exposure" && (
+            <>
+              <Text style={ui.copy}>
+                Shutter and ISO lock together. Changing either keeps the other
+                at its current value.
+              </Text>
+              <Dial
+                label="ISO"
+                range={capabilities.iso}
+                value={p.manual.iso}
+                logarithmic
+                onAuto={() => manual({ iso: null, shutter: null })}
+                onChange={(iso) =>
+                  manual({
+                    iso: Math.round(iso),
+                    shutter:
+                      p.manual.shutter ??
+                      reading.shutter ??
+                      capabilities.shutter?.min ??
+                      null,
+                  })
+                }
+              />
+              {capabilities.iso && (
+                <Options
+                  value={p.manual.iso ?? 0}
+                  values={[
+                    25, 50, 64, 100, 125, 200, 400, 800, 1600, 3200, 6400,
+                  ]
+                    .filter(
+                      (value) =>
+                        value >= capabilities.iso!.min &&
+                        value <= capabilities.iso!.max,
+                    )
+                    .map((value) => ({ value, label: `ISO ${value}` }))}
+                  onChange={(iso) =>
+                    manual({
+                      iso,
+                      shutter:
+                        p.manual.shutter ??
+                        reading.shutter ??
+                        capabilities.shutter?.min ??
+                        null,
+                    })
+                  }
+                />
+              )}
+              <Dial
+                label="Shutter"
+                range={capabilities.shutter}
+                value={p.manual.shutter}
+                logarithmic
+                format={shutterLabel}
+                onAuto={() => manual({ iso: null, shutter: null })}
+                onChange={(shutter) =>
+                  manual({
+                    shutter,
+                    iso:
+                      p.manual.iso ??
+                      reading.iso ??
+                      capabilities.iso?.min ??
+                      null,
+                  })
+                }
+              />
+              {capabilities.shutter && (
+                <Options
+                  value={p.manual.shutter ?? 0}
+                  values={[
+                    1 / 8000,
+                    1 / 4000,
+                    1 / 2000,
+                    1 / 1000,
+                    1 / 500,
+                    1 / 250,
+                    1 / 125,
+                    1 / 60,
+                    1 / 30,
+                    1 / 15,
+                    1 / 8,
+                    1 / 4,
+                    1 / 2,
+                    1,
+                    2,
+                  ]
+                    .filter(
+                      (value) =>
+                        value >= capabilities.shutter!.min &&
+                        value <= capabilities.shutter!.max,
+                    )
+                    .map((value) => ({ value, label: shutterLabel(value) }))}
+                  onChange={(shutter) =>
+                    manual({
+                      shutter,
+                      iso:
+                        p.manual.iso ??
+                        reading.iso ??
+                        capabilities.iso?.min ??
+                        null,
+                    })
+                  }
+                />
+              )}
+              {p.manual.shutter !== null && p.manual.shutter > 1 / 30 && (
+                <Text style={ui.copy}>
+                  Slow shutter: hold still or use a tripod.
+                </Text>
+              )}
+            </>
+          )}
+          {panel === "whiteBalance" && (
+            <>
+              <Dial
+                label="Temperature"
+                range={capabilities.temperature}
+                value={p.manual.temperature}
+                format={(v) => `${Math.round(v)}K`}
+                onAuto={() => manual({ temperature: null, tint: 0 })}
+                onChange={(temperature) => manual({ temperature })}
+              />
+              {capabilities.temperature && (
+                <>
+                  <Options
+                    value={p.manual.temperature ?? 0}
+                    values={[
+                      { value: 3200, label: "Tungsten" },
+                      { value: 4000, label: "Fluorescent" },
+                      { value: 5500, label: "Daylight" },
+                      { value: 6500, label: "Cloudy" },
+                      { value: 7500, label: "Shade" },
+                    ].filter(
+                      (v) =>
+                        v.value >= capabilities.temperature!.min &&
+                        v.value <= capabilities.temperature!.max,
+                    )}
+                    onChange={(temperature) => manual({ temperature })}
+                  />
+                  {Platform.OS === "ios" && (
+                    <Dial
+                      label="Tint"
+                      range={{ min: -150, max: 150, step: 1 }}
+                      value={p.manual.tint}
+                      onChange={(tint) =>
+                        manual({
+                          tint,
+                          temperature: p.manual.temperature ?? 5500,
+                        })
+                      }
+                    />
+                  )}
+                </>
+              )}
+            </>
+          )}
+          {panel === "ev" &&
+            (p.manual.iso !== null || p.manual.shutter !== null ? (
+              <>
+                <Text style={ui.copy}>
+                  Exposure compensation is available with automatic exposure.
+                </Text>
+                <Button
+                  label="Use automatic exposure"
+                  onPress={() => manual({ iso: null, shutter: null })}
+                />
+              </>
+            ) : (
+              <Dial
+                label="EV"
+                autoLabel="Reset"
+                range={capabilities.ev}
+                value={p.manual.ev}
+                format={(v) => `${v > 0 ? "+" : ""}${v.toFixed(1)} EV`}
+                onAuto={() => manual({ ev: 0 })}
+                onChange={(ev) => manual({ ev })}
+              />
+            ))}
+          {panel === "settings" && (
+            <>
+              <Toggle
+                label={
+                  Platform.OS === "web"
+                    ? "Download after each capture"
+                    : "Save to Photos after capture"
+                }
+                value={p.autoSave}
+                onChange={(autoSave) => update({ autoSave })}
+              />
+              {Platform.OS !== "web" && (
+                <Toggle
+                  label="Shutter sound"
+                  value={p.sound}
+                  onChange={(sound) => update({ sound })}
+                />
+              )}
+              <Button
+                label="Exposure compensation"
+                onPress={() => setPanel("ev")}
+              />
+              <Dial
+                label="Zoom"
+                range={capabilities.zoom}
+                value={p.zoom}
+                onChange={(zoom) => update({ zoom })}
+                format={(v) => `${v.toFixed(1)}×`}
+              />
+              <Text style={ui.copy}>
+                Zoom shortcuts are magnification values. Digital zoom crops the
+                image. Select a physical camera below for an optical change.
+              </Text>
+              <View style={ui.row}>
+                {capabilities.devices.map((device) => (
+                  <Button
+                    key={device.id}
+                    label={device.name}
+                    selected={capabilities.id === device.id}
+                    onPress={() => {
+                      setReady(false);
+                      update({
+                        deviceId: device.id,
+                        facing: device.facing,
+                        zoom: 1,
+                        manual: AUTO,
+                        mode: "PHOTO",
+                      });
+                    }}
+                  />
+                ))}
+              </View>
+              <Text selectable style={ui.copy}>
+                {capabilities.name}
+                {capabilities.resolutions.length
+                  ? `\nReported photo sizes: ${capabilities.resolutions.map((r) => `${r.width} × ${r.height}`).join(", ")}`
+                  : ""}
+              </Text>
+              <Button
+                label="Show gesture guide"
+                onPress={() => setPanel("guide")}
+              />
+              <Button
+                label="Reset camera preferences"
+                onPress={() => {
+                  setP({ ...DEFAULTS, guideSeen: true });
+                  setFocus(null);
+                  setNotice(
+                    "Camera preferences reset. Your photographs are unchanged.",
+                  );
+                }}
+              />
+              {Platform.OS !== "web" && (
+                <Button
+                  label="Open system permissions"
+                  onPress={() => {
+                    void Linking.openSettings().catch((error) =>
+                      setNotice(errorText(error)),
+                    );
+                  }}
+                />
+              )}
+              <Text style={ui.copy}>
+                Iris works on this device. Photos and metadata are not uploaded.
+                Originals remain in Iris until you delete them. Deleting the app
+                also removes its private photos; save or share photographs you
+                want to keep.
+              </Text>
+            </>
+          )}
+          {panel === "guide" && (
+            <>
+              <Text style={ui.copy}>
+                Tap the shutter to take one photo. Your original is kept in
+                Iris; open its thumbnail to save to Photos or share.
+              </Text>
+              <Text style={ui.copy}>
+                Tap the frame to meter. Hold to lock supported automatic
+                controls. Pinch or use the zoom buttons to frame your shot.
+              </Text>
+              <Text style={ui.copy}>
+                Choose Manual for shutter, ISO, focus and white balance. Auto
+                resumes automatic control. Each camera exposes the settings it
+                supports.
+              </Text>
+              <Text style={ui.copy}>
+                Choose a Look before capture, or change it later from the photo
+                viewer. RAW keeps the sensor data unbaked.
+              </Text>
+              <Button label="Start shooting" onPress={closePanel} />
+            </>
+          )}
+          {panel === "library" && (
+            <>
+              <Toggle
+                label="Favorites only"
+                value={onlyFavorites}
+                onChange={setOnlyFavorites}
+              />
+              <Options
+                value={libraryFormat}
+                values={["all", "jpeg", "heic", "dng"].map((value) => ({
+                  value,
+                  label: value.toUpperCase(),
+                }))}
+                onChange={setLibraryFormat}
+              />
+              <Options
+                value={libraryLook}
+                values={[
+                  { value: "all", label: "All Looks" },
+                  ...LOOKS.map((look) => ({
+                    value: look.id,
+                    label: look.name,
+                  })),
+                ]}
+                onChange={setLibraryLook}
+              />
+              <View style={ui.row}>
+                {records
+                  .filter(
+                    (r) =>
+                      (!onlyFavorites || r.favorite) &&
+                      (libraryFormat === "all" || r.format === libraryFormat) &&
+                      (libraryLook === "all" || r.look === libraryLook),
+                  )
+                  .map((record) => (
+                    <Pressable
+                      key={record.id}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Open photo ${new Date(record.createdAt).toLocaleString()}${record.favorite ? ", favorite" : ""}`}
+                      onPress={() => review(record)}
+                      style={{ width: "30%", gap: 6, paddingBottom: 10 }}
+                    >
+                      <Image
+                        source={record.thumbnailUri}
+                        contentFit="cover"
+                        style={{
+                          width: "100%",
+                          aspectRatio: 0.85,
+                          borderRadius: 12,
+                        }}
+                      />
+                      <Text style={ui.copy}>
+                        {record.favorite ? "★ " : ""}
+                        {record.format.toUpperCase()} · {record.look}
+                      </Text>
+                    </Pressable>
+                  ))}
+              </View>
+              {!records.some(
+                (r) =>
+                  (!onlyFavorites || r.favorite) &&
+                  (libraryFormat === "all" || r.format === libraryFormat) &&
+                  (libraryLook === "all" || r.look === libraryLook),
+              ) && (
+                <Text style={ui.copy}>
+                  {records.length
+                    ? "No photos match these filters."
+                    : "Your photographs will appear here after your first capture."}
+                </Text>
+              )}
+            </>
+          )}
+          {panel === "metadata" && selected && (
+            <>
+              <Text selectable style={ui.copy}>
+                {new Date(selected.createdAt).toLocaleString()}
+                <Text>{`\n${selected.width} × ${selected.height}\n${selected.format.toUpperCase()}\nLook: ${selected.format === "dng" ? "Not baked into RAW" : `${selected.look}, ${selected.intensity}%`}\nRecipe version: ${selected.recipeVersion}\n${selected.saved ? "Saved to Photos / downloaded" : "Kept in Iris"}\n\n${Object.entries(
+                  selected.metadata,
+                )
+                  .map(
+                    ([key, value]) =>
+                      `${key}: ${key === "shutter" && typeof value === "number" ? shutterLabel(value) : value}`,
+                  )
+                  .join("\n")}`}</Text>
+              </Text>
+              <Text style={ui.copy}>
+                Camera readings are recorded at capture. The native original
+                retains the camera’s EXIF metadata.
+              </Text>
+              <Button
+                label="Share original"
+                onPress={() => {
+                  void run(() => sharePhoto(selected.sourceUri));
+                }}
+              />
+            </>
+          )}
+          {panel === "delete" && selected && (
+            <>
+              <Text style={ui.copy}>
+                Delete this photograph and its original from Iris? This cannot
+                be undone. Copies already saved to Photos or downloaded remain
+                there.
+              </Text>
+              <Button
+                label={busy ? "Deleting…" : "Delete from Iris"}
+                danger
+                disabled={busy}
+                onPress={() => {
+                  void run(async () => {
+                    await deleteCapture(selected);
+                    await refresh();
+                    setSelectedId(null);
+                    setPanel(null);
+                    setNotice("Photograph deleted from Iris.");
+                  });
+                }}
+              />
+              <Button
+                label="Keep photograph"
+                disabled={busy}
+                onPress={closePanel}
+              />
+            </>
+          )}
+          {panel === "saveAgain" && (
+            <>
+              <Text style={ui.copy}>
+                Iris was interrupted during a previous save. Check Photos before
+                saving again to avoid creating a duplicate.
+              </Text>
+              <Button
+                label="I checked, save again"
+                disabled={busy}
+                onPress={() => saveReview(true)}
+              />
+              <Button
+                label="Already in Photos"
+                disabled={busy}
+                onPress={() => {
+                  if (selected)
+                    void run(async () => {
+                      await updateCapture(selected.id, {
+                        saved: true,
+                        savePending: false,
+                      });
+                      await refresh();
+                      setPanel(null);
+                    });
+                }}
+              />
+            </>
+          )}
+          {busy && <ActivityIndicator color={IrisColors.chalk} />}
+        </Sheet>
+      )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  page: {
-    alignItems: 'center',
-    backgroundColor: IrisColors.opticalBlack,
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-    width: '100%',
-  },
-  appShell: {
-    alignSelf: 'center',
-    backgroundColor: IrisColors.opticalBlack,
-    flex: 1,
-    maxWidth: 520,
-    overflow: 'hidden',
-    width: '100%',
-  },
-  nonInteractive: {
-    pointerEvents: 'none',
-  },
-  topRail: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    height: 58,
-    justifyContent: 'space-between',
-    paddingHorizontal: 18,
-  },
-  brandLockup: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 9,
-  },
-  wordmark: {
-    color: IrisColors.chalk,
-    fontFamily: IrisFonts.displaySemiBold,
-    fontSize: 22,
-    letterSpacing: 4,
-  },
-  sessionState: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 6,
-    position: 'absolute',
-    left: '50%',
-    transform: [{ translateX: -25 }],
-  },
-  liveDot: {
-    backgroundColor: IrisColors.chalk,
-    borderRadius: 4,
-    height: 7,
-    width: 7,
-  },
-  sessionText: {
-    color: IrisColors.fog,
-    fontFamily: IrisFonts.displayMedium,
-    fontSize: 11,
-    letterSpacing: 1.4,
-  },
-  counterPill: {
-    alignItems: 'flex-end',
-  },
-  counterText: {
-    color: IrisColors.chalk,
-    fontFamily: IrisFonts.displaySemiBold,
-    fontSize: 18,
-    lineHeight: 18,
-  },
-  counterLabel: {
-    color: IrisColors.fog,
-    fontFamily: IrisFonts.displayMedium,
-    fontSize: 8,
-    letterSpacing: 1.4,
-  },
-  viewfinder: {
-    backgroundColor: '#24201E',
-    flex: 1,
-    minHeight: 260,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  sceneGlow: {
-    backgroundColor: '#96938C',
-    borderRadius: 180,
-    height: 360,
-    opacity: 0.46,
-    position: 'absolute',
-    right: -100,
-    top: -95,
-    width: 360,
-  },
-  sceneOrb: {
-    backgroundColor: '#6F6E6A',
-    borderColor: '#AEACA5',
-    borderRadius: 90,
-    borderWidth: 2,
-    height: 180,
-    opacity: 0.72,
-    position: 'absolute',
-    right: 38,
-    top: 70,
-    width: 180,
-  },
-  sceneColumn: {
-    backgroundColor: '#151517',
-    bottom: -34,
-    height: '86%',
-    left: 26,
-    position: 'absolute',
-    transform: [{ rotate: '-8deg' }],
-    width: '24%',
-  },
-  scenePlane: {
-    backgroundColor: '#65635D',
-    bottom: 22,
-    height: '37%',
-    left: '23%',
-    opacity: 0.9,
-    position: 'absolute',
-    transform: [{ rotate: '7deg' }],
-    width: '88%',
-  },
-  sceneShadow: {
-    backgroundColor: '#0A0A0B',
-    bottom: -105,
-    borderRadius: 240,
-    height: 250,
-    left: -30,
-    opacity: 0.64,
-    position: 'absolute',
-    width: '120%',
-  },
-  gridLineVertical: {
-    backgroundColor: 'rgba(244,242,237,0.2)',
-    bottom: 0,
-    position: 'absolute',
-    top: 0,
-    width: StyleSheet.hairlineWidth,
-  },
-  gridLineHorizontal: {
-    backgroundColor: 'rgba(244,242,237,0.2)',
-    height: StyleSheet.hairlineWidth,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-  },
-  exposureChip: {
-    alignItems: 'center',
-    alignSelf: 'center',
-    backgroundColor: 'rgba(5,5,6,0.72)',
-    borderColor: 'rgba(244,242,237,0.14)',
-    borderRadius: 14,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 9,
-    paddingHorizontal: 13,
-    paddingVertical: 7,
-    position: 'absolute',
-    top: 14,
-  },
-  exposureText: {
-    color: IrisColors.chalk,
-    fontFamily: IrisFonts.displayMedium,
-    fontSize: 13,
-    letterSpacing: 0.8,
-  },
-  exposureDivider: {
-    backgroundColor: IrisColors.fog,
-    height: 10,
-    width: 1,
-  },
-  focusReticle: {
-    alignItems: 'center',
-    borderColor: IrisColors.chalk,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    height: 46,
-    justifyContent: 'center',
-    marginLeft: -23,
-    marginTop: -23,
-    position: 'absolute',
-    width: 46,
-  },
-  focusDot: {
-    backgroundColor: IrisColors.chalk,
-    borderRadius: 2,
-    height: 4,
-    width: 4,
-  },
-  previewLabel: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 6,
-    left: 13,
-    position: 'absolute',
-    top: 14,
-  },
-  previewLabelDot: {
-    backgroundColor: IrisColors.chalk,
-    borderRadius: 3,
-    height: 5,
-    width: 5,
-  },
-  previewLabelText: {
-    color: IrisColors.chalk,
-    fontFamily: IrisFonts.displayMedium,
-    fontSize: 9,
-    letterSpacing: 1.4,
-  },
-  reviewCloseButton: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(5,5,6,0.82)',
-    borderColor: 'rgba(244,242,237,0.2)',
-    borderCurve: 'continuous',
-    borderRadius: 16,
-    borderWidth: 1,
-    minHeight: 44,
-    paddingHorizontal: 15,
-    position: 'absolute',
-    right: 13,
-    top: 9,
-    justifyContent: 'center',
-  },
-  reviewCloseText: {
-    color: IrisColors.chalk,
-    fontFamily: IrisFonts.displaySemiBold,
-    fontSize: 10,
-    letterSpacing: 1.1,
-  },
-  lensRail: {
-    alignItems: 'center',
-    alignSelf: 'center',
-    backgroundColor: 'rgba(5,5,6,0.78)',
-    borderColor: 'rgba(244,242,237,0.13)',
-    borderRadius: 22,
-    borderWidth: 1,
-    bottom: 14,
-    flexDirection: 'row',
-    gap: 2,
-    padding: 4,
-    position: 'absolute',
-  },
-  lensButton: {
-    alignItems: 'center',
-    borderRadius: 17,
-    height: 34,
-    justifyContent: 'center',
-    width: 40,
-  },
-  lensButtonSelected: {
-    backgroundColor: IrisColors.chalk,
-  },
-  lensText: {
-    color: IrisColors.fog,
-    fontFamily: IrisFonts.displaySemiBold,
-    fontSize: 14,
-  },
-  lensTextSelected: {
-    color: IrisColors.opticalBlack,
-  },
-  millimeterLabel: {
-    color: IrisColors.fog,
-    fontFamily: IrisFonts.displayMedium,
-    fontSize: 8,
-    marginHorizontal: 7,
-  },
-  captureFlash: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: IrisColors.chalk,
-    opacity: 0.78,
-  },
-  controlDeck: {
-    backgroundColor: IrisColors.carbon,
-    borderColor: IrisColors.line,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    borderTopWidth: 1,
-    marginTop: -1,
-    paddingBottom: 4,
-    paddingHorizontal: 14,
-  },
-  errorBanner: {
-    backgroundColor: 'rgba(242,13,47,0.14)',
-    borderColor: 'rgba(242,13,47,0.4)',
-    borderCurve: 'continuous',
-    borderRadius: 12,
-    borderWidth: 1,
-    marginTop: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-  },
-  errorText: {
-    color: IrisColors.chalk,
-    fontSize: 13,
-    lineHeight: 18,
-    textAlign: 'center',
-  },
-  modeTabs: {
-    alignItems: 'stretch',
-    backgroundColor: IrisColors.ink,
-    borderRadius: 22,
-    flexDirection: 'row',
-    height: 54,
-    marginTop: 8,
-  },
-  modeTab: {
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  modeText: {
-    color: IrisColors.fog,
-    fontFamily: IrisFonts.displaySemiBold,
-    fontSize: 16,
-    letterSpacing: 1.8,
-  },
-  modeTextSelected: {
-    color: IrisColors.chalk,
-  },
-  modeRule: {
-    backgroundColor: IrisColors.signalRed,
-    borderRadius: 1,
-    bottom: 7,
-    height: 2,
-    position: 'absolute',
-    width: 34,
-  },
-  toolGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  tool: {
-    alignItems: 'center',
-    borderColor: IrisColors.line,
-    borderRadius: 14,
-    borderWidth: 1,
-    flexBasis: '22%',
-    flexGrow: 1,
-    justifyContent: 'center',
-    minHeight: 54,
-    minWidth: 0,
-    paddingHorizontal: 3,
-    paddingVertical: 6,
-  },
-  toolActive: {
-    backgroundColor: IrisColors.graphite,
-    borderColor: 'rgba(244,242,237,0.2)',
-  },
-  toolPressed: {
-    backgroundColor: '#303034',
-    transform: [{ scale: 0.97 }],
-  },
-  toolValue: {
-    color: IrisColors.chalk,
-    fontFamily: IrisFonts.displaySemiBold,
-    fontSize: 12,
-    marginTop: 5,
-  },
-  toolLabel: {
-    color: IrisColors.fog,
-    fontFamily: IrisFonts.displayMedium,
-    fontSize: 8,
-    letterSpacing: 0.6,
-    marginTop: 1,
-  },
-  symbolFallback: {
-    color: IrisColors.chalk,
-    fontFamily: IrisFonts.displayMedium,
-    fontSize: 18,
-  },
-  captureRail: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    height: 72,
-    justifyContent: 'space-between',
-    paddingHorizontal: 6,
-    position: 'relative',
-  },
-  lookControl: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 9,
-    minWidth: 104,
-  },
-  lookSwatch: {
-    backgroundColor: '#8E8D88',
-    borderColor: IrisColors.chalk,
-    borderRadius: 11,
-    borderWidth: 1,
-    height: 30,
-    overflow: 'hidden',
-    width: 24,
-  },
-  lookLabel: {
-    color: IrisColors.fog,
-    fontFamily: IrisFonts.displayMedium,
-    fontSize: 8,
-    letterSpacing: 1.1,
-  },
-  lookValue: {
-    color: IrisColors.chalk,
-    fontFamily: IrisFonts.displaySemiBold,
-    fontSize: 13,
-  },
-  shutterOuter: {
-    alignItems: 'center',
-    borderColor: IrisColors.chalk,
-    borderRadius: 30,
-    borderWidth: 2,
-    height: 60,
-    justifyContent: 'center',
-    left: '50%',
-    marginLeft: -30,
-    position: 'absolute',
-    width: 60,
-  },
-  shutterInner: {
-    backgroundColor: IrisColors.chalk,
-    borderRadius: 24,
-    height: 48,
-    width: 48,
-  },
-  shutterPressed: {
-    borderColor: IrisColors.fog,
-    transform: [{ scale: 0.94 }],
-  },
-  shutterDisabled: {
-    opacity: 0.38,
-  },
-  flipButton: {
-    alignItems: 'center',
-    backgroundColor: IrisColors.graphite,
-    borderColor: IrisColors.line,
-    borderRadius: 22,
-    borderWidth: 1,
-    height: 44,
-    justifyContent: 'center',
-    width: 44,
-  },
-  pressed: {
-    opacity: 0.64,
-  },
-});

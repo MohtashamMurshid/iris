@@ -66,3 +66,18 @@ Iris aims to feel like an optical instrument: calm, precise, and out of the way 
 ## Contributing
 
 See [CONTRIBUTING.md](../../CONTRIBUTING.md) at the repository root.
+
+## Camera build and testing
+
+The capture screen now uses VisionCamera 5.2.3 and Skia. The local `modules/iris-processing` Expo module processes full-resolution HEIC/JPEG Looks with Core Image. Rebuild the native app after installing dependencies; Expo Go cannot run this capture pipeline.
+
+```bash
+npm run dev-client
+npm run ios:device
+```
+
+For cloud builds, `eas.json` includes development, simulator, preview and production profiles. Configure your Expo project and Apple signing credentials before using EAS. No signed build or TestFlight upload is included in this repository change.
+
+For browser development, `npm run web` opens the same camera UI with browser-supported capture. Use HTTPS or localhost for camera permissions. Browser photos use IndexedDB and download/share; native-only hardware controls are unavailable where the browser does not expose them.
+
+See [implementation and validation](../../docs/IMPLEMENTATION_STATUS.md) for automated checks and the physical-device release checklist. Shutter and ISO lock together; RAW stays unprocessed. All originals remain in Iris until deleted, and deleting Iris also deletes its private library.

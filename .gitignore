@@ -50,3 +50,8 @@ example
 .agents/
 .claude/skills/
 skills-lock.json
+
+# Generated test evidence and platform bundles
+/apps/mobile/dist-ios/
+/apps/mobile/test-results/
+/apps/mobile/playwright-report/

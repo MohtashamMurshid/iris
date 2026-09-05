@@ -18,10 +18,17 @@
     "mobile:ios:device": "npm run ios:device --workspace=@iris/mobile",
     "mobile:web": "npm run web --workspace=@iris/mobile",
     "web": "npm run dev --workspace=@iris/web",
-    "web:build": "npm run build --workspace=@iris/web"
+    "web:build": "npm run build --workspace=@iris/web",
+    "test": "npm run test --workspace=@iris/mobile",
+    "test:e2e": "npm run test:e2e --workspace=@iris/mobile"
   },
   "packageManager": "npm@11.16.0",
   "devDependencies": {
     "turbo": "^2.10.8"
+  },
+  "overrides": {
+    "xcode": {
+      "uuid": "11.1.1"
+    }
   }
 }
